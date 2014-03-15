@@ -1,0 +1,47 @@
+{
+    "versionLabel": "1.0.0",
+    "uuid": "f22cf930-ab94-11e3-a5e2-0800200c9a66",
+    "appKeys": {
+        "hidedate": 2,
+        "invert": 1,
+        "vibeminutes": 3
+    },
+    "longName": "Digital Watch With Date",
+    "versionCode": 1,
+    "capabilities": [
+        "configurable"
+    ],
+    "shortName": "Digital Watch With Date",
+    "companyName": "One Green Light ",
+    "watchapp": {
+        "watchface": true
+    },
+    "resources": {
+        "media": [
+            {
+                "characterRegex": "[0-9:. ]",
+                "type": "font",
+                "name": "FONT_ORBITRON_BOLD_42",
+                "file": "fonts/Orbitron Medium.ttf"
+            },
+            {
+                "characterRegex": "[0-9:. MTWFSa-z]",
+                "type": "font",
+                "name": "FONT_ORBITRON_BOLD_14",
+                "file": "fonts/Orbitron Bold.ttf"
+            },
+            {
+                "characterRegex": "[0-9 JFMASONDanuryebchplgstptmob]",
+                "type": "font",
+                "name": "FONT_ORBITRON_LIGHT_13",
+                "file": "fonts/Orbitron Light.ttf"
+            },
+            {
+                "menuIcon": true,
+                "type": "png",
+                "name": "IMAGE_MENU_ICON",
+                "file": "images/menu_icon.png"
+            }
+        ]
+    }
+}

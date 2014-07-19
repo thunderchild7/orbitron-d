@@ -91,13 +91,14 @@ enum {
 	DATESTYLE_KEY = 0x5,
 	BT_KEY = 0x6,
 	CONN_KEY = 0x7,
-	NUM_CONFIG_KEYS = 0x7
+	SHOW_SECS = 0x8,
+	NUM_CONFIG_KEYS = 0x8
 };
 
 const char* WEEKDAY_NAMES[NUM_LANG][7] = { // 3 chars, 1 for utf-8, 1 for terminating 0
   {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"}, // english
   {"Sonntag",  "Montag",  "Dienstag",  "Mittwoch",  "Donnerstag",  "Freitag",  "Samstag" },  // german
-  {"Domingo", "Lunes", "Martes", "Miécoles", "Jueves", "Viernes", "Sábado"},  // spanish
+  {"Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"},  // spanish
   {"Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"}, // french
   {"Domenica", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato"}, // italian 
   {"Söndag", "Måndag", "Tisdag", "Onsdag", "Torsdag", "Fredag", "Lördag"},  // swedish
@@ -132,7 +133,7 @@ const char* ORDINAL[NUM_LANG][10] = {
 };
 
 static AppSync sync;
-static uint8_t sync_buffer[128];
+static uint8_t sync_buffer[256];
 
 static char line2Str[2][BUFFER_SIZE];
 static char line4Str[2][BUFFER_SIZE];
@@ -292,6 +293,28 @@ bool needToUpdateLine(Line *line, char lineStr[2][BUFFER_SIZE], char *nextValue)
   return false;
 }
 
+void display_second(struct tm* pbltime) {
+
+  //  check for empty time
+
+  time_t now;
+  if (pbltime == NULL) {
+    now = time(NULL);
+    pbltime = localtime(&now);
+  }
+  static char second_text[] = "00";
+
+  char *second_format;
+
+
+  second_format = "%S";
+  strftime(second_text, sizeof(second_text), second_format, pbltime);
+  text_layer_set_text(line4, second_text);
+  //if (needToUpdateLine(&line4, line4Str, second_text)) {
+  //  updateLineTo(&line4, line4Str, second_text);
+  //}
+
+}
 void display_time(struct tm* pbltime) {
 
   //  check for empty time
@@ -323,33 +346,13 @@ void display_time(struct tm* pbltime) {
   if (needToUpdateLine(&line2, line2Str, time_text)) {
     updateLineTo(&line2, line2Str, time_text);
   }
-
+ if (secondsMode == SECONDS_MODE_ON)
+ {
+    display_second(NULL);
+ }
 }
 
-void display_second(struct tm* pbltime) {
 
-  //  check for empty time
-
-  time_t now;
-  if (pbltime == NULL) {
-    now = time(NULL);
-    pbltime = localtime(&now);
-  }
-
-
-  static char second_text[] = "00";
-
-  char *second_format;
-
-
-  second_format = "%S";
-  strftime(second_text, sizeof(second_text), second_format, pbltime);
-  text_layer_set_text(line4, second_text);
-  //if (needToUpdateLine(&line4, line4Str, second_text)) {
-  //  updateLineTo(&line4, line4Str, second_text);
-  //}
-
-}
 
 static void remove_invert() {
     if (inverter_layer != NULL) {
@@ -366,7 +369,25 @@ static void set_invert() {
 		layer_mark_dirty(inverter_layer_get_layer(inverter_layer));
     }
 }
+void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed);
+
+void handle_second_tick(struct tm *tick_time, TimeUnits units_changed);
+
+
+static void remove_second_handler() {
+   tick_timer_service_unsubscribe();
+   tick_timer_service_subscribe(MINUTE_UNIT, handle_minute_tick);
+  static char second_text[] = "";
+
+  text_layer_set_text(line4, second_text);
   
+}
+
+static void set_second_handler() {
+   tick_timer_service_unsubscribe();
+   tick_timer_service_subscribe(SECOND_UNIT, handle_second_tick);
+
+}
 void lost_connection_warning(void *);
 
 void handle_bluetooth(bool connected) {
@@ -424,9 +445,6 @@ void configureBoldLayer(TextLayer *textlayer)
   text_layer_set_text_alignment(textlayer, GTextAlignmentRight);
 }
 
-void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed);
-
-void handle_second_tick(struct tm *tick_time, TimeUnits units_changed);
 
 static void sync_tuple_changed_callback(const uint32_t key, const Tuple * new_tuple, const Tuple * old_tuple, void *context) {
     // APP_LOG(APP_LOG_LEVEL_DEBUG, "TUPLE! %lu : %d", key, new_tuple->value->uint8);
@@ -477,6 +495,21 @@ static void sync_tuple_changed_callback(const uint32_t key, const Tuple * new_tu
 			persist_write_int(CONN_KEY, connlost_mode);
 		    handle_bluetooth(bluetooth_connection_service_peek());
 		    break;
+		
+		case SHOW_SECS:
+		    if (secondsMode == SECONDS_MODE_ON) {				
+			    remove_second_handler();
+			}
+			secondsMode = new_tuple->value->uint8;
+		    persist_write_int(SHOW_SECS, secondsMode);
+			if (secondsMode == SECONDS_MODE_ON) {
+				set_second_handler();
+			}
+		   else
+		   {
+			 remove_second_handler();
+		   }
+			break;
 	}
 }
 void init() {
@@ -512,6 +545,13 @@ void init() {
 		// If so, read it in to a variable
 		connlost_mode = persist_read_int(CONN_KEY);
 	}
+	
+	if (persist_exists(SHOW_SECS)) {
+		// If so, read it in to a variable
+		secondsMode = persist_read_int(SHOW_SECS);
+		persist_write_int(SHOW_SECS, secondsMode);
+
+	}
 	Tuplet initial_values[NUM_CONFIG_KEYS] = {
 	TupletInteger(INVERT_KEY, mInvert),
 	TupletInteger(VIBEMINUTES_KEY, mVibeMinutes),
@@ -519,10 +559,11 @@ void init() {
 	TupletInteger(BATTERY_KEY, battery_mode),
 	TupletInteger(LANG_KEY, language),
 	TupletInteger(BT_KEY, bluetooth_mode),
-	TupletInteger(CONN_KEY, connlost_mode)
+	TupletInteger(CONN_KEY, connlost_mode),
+	TupletInteger(SHOW_SECS, secondsMode)
 	};
 
-	app_message_open(128, 128);
+	app_message_open(256, 256);
 	app_sync_init(&sync, sync_buffer, sizeof(sync_buffer), initial_values,
 			ARRAY_LENGTH(initial_values), sync_tuple_changed_callback, NULL, NULL);
 	
@@ -602,19 +643,18 @@ void init() {
   bluetooth_layer = bitmap_layer_create(GRect(1, 3, 45, 20));
   layer_add_child(window_get_root_layer(window), bitmap_layer_get_layer(bluetooth_layer));
 
+  // Configure time on init so we don't have a blank face
   display_time(NULL);
   setDate(NULL);
-
-  tick_timer_service_subscribe(MINUTE_UNIT, handle_minute_tick);
-  // Configure time on init so we don't have a blank face
-	
  if (secondsMode == SECONDS_MODE_ON)
  {
-  display_second(NULL);
-  tick_timer_service_subscribe(SECOND_UNIT, handle_second_tick);
+    tick_timer_service_subscribe(SECOND_UNIT, handle_second_tick);
+ }
+ else {
+     tick_timer_service_subscribe(MINUTE_UNIT, handle_minute_tick);
  }
 
-	battery_state_service_subscribe(&handle_battery);
+  battery_state_service_subscribe(&handle_battery);
   handle_battery(battery_state_service_peek());
   bluetooth_connection_service_subscribe(&handle_bluetooth);
   handle_bluetooth(bluetooth_connection_service_peek());
@@ -624,9 +664,9 @@ void init() {
 }
 
 void deinit() {
-	  battery_state_service_unsubscribe();
+   battery_state_service_unsubscribe();
    app_sync_deinit(&sync);
-  tick_timer_service_unsubscribe();
+   tick_timer_service_unsubscribe();
 
   layer_destroy((Layer*)line2.currentLayer);
   layer_destroy((Layer*)line2.nextLayer);

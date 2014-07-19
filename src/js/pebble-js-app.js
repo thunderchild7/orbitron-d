@@ -1,5 +1,5 @@
 // URL to your configuration page
-var config_url = "http://ewobo.co.uk/pebble/index2b.html?v=1.0";
+var config_url = "http://ewobo.co.uk/pebble/index2d1.html?v=1.0";
 
 Pebble.addEventListener("ready", function(e) {
 

@@ -1,47 +1,192 @@
 {
-    "versionLabel": "1.0.0",
-    "uuid": "f22cf930-ab94-11e3-a5e2-0800200c9a66",
     "appKeys": {
-        "hidedate": 2,
+        "battery": 2,
+        "bluetooth": 6,
+        "connlost": 7,
+        "datestyle": 5,
         "invert": 1,
+        "language": 4,
         "vibeminutes": 3
     },
-    "longName": "Digital Watch With Date",
-    "versionCode": 1,
     "capabilities": [
         "configurable"
     ],
-    "shortName": "Digital Watch With Date",
     "companyName": "One Green Light ",
-    "watchapp": {
-        "watchface": true
-    },
+    "longName": "Orbitron-D",
+    "projectType": "native",
     "resources": {
         "media": [
             {
-                "characterRegex": "[0-9:. ]",
-                "type": "font",
-                "name": "FONT_ORBITRON_BOLD_42",
-                "file": "fonts/Orbitron Medium.ttf"
-            },
-            {
-                "characterRegex": "[0-9:. MTWFSa-z]",
-                "type": "font",
-                "name": "FONT_ORBITRON_BOLD_14",
-                "file": "fonts/Orbitron Bold.ttf"
-            },
-            {
-                "characterRegex": "[0-9 JFMASONDanuryebchplgstptmob]",
-                "type": "font",
-                "name": "FONT_ORBITRON_LIGHT_13",
-                "file": "fonts/Orbitron Light.ttf"
-            },
-            {
+                "file": "images/menu_icon.png",
                 "menuIcon": true,
-                "type": "png",
                 "name": "IMAGE_MENU_ICON",
-                "file": "images/menu_icon.png"
+                "type": "png"
+            },
+            {
+                "characterRegex": "[0-9 A-Za-z,\u00ba\u00e9\u00e1\u00e5\u00e4\u00f6\u00f8\u00ec:.\u0430\u0447\u0446\u0431\u0412\u0434\u041f\u043a\u043e\u0442\u044f\u043d\u0432\u0444\u043c\u043f\u0439\u0438\u044e\u043b\u0433\u043f\u044c]",
+                "file": "fonts/Orbitron Light.ttf",
+                "name": "FONT_ORBITRON_LIGHT_14",
+                "type": "font"
+            },
+            {
+                "characterRegex": "[0-9:. ]",
+                "file": "fonts/Orbitron Medium.ttf",
+                "name": "FONT_WWDIGITAL_BOLD_40",
+                "type": "font"
+            },
+            {
+                "characterRegex": "[0-9:. ]",
+                "file": "fonts/Raleway-Bold.ttf",
+                "name": "FONT_ORBITRON_BOLD_16",
+                "trackingAdjust": 1,
+                "type": "font"
+            },
+            {
+                "characterRegex": "[A-Za-z 0-9,\u00e9\u00e1\u00e5\u00e4\u00f6\u00f8\u00ec.\u0430\u0447\u0446\u0431\u0412\u0434\u041f\u043a\u043e\u0442\u044f\u043d\u0432\u0444\u043c\u043f\u0439\u0438\u044e\u043b\u0433\u043f\u044c]",
+                "file": "fonts/Raleway-Bold.ttf",
+                "name": "FONT_ORBITRON_BOLD_15",
+                "trackingAdjust": 1,
+                "type": "font"
+            },
+            {
+                "characterRegex": "[A-Za-z 0-9,\u00e9\u00e1\u00e5\u00e4\u00f6\u00f8\u00ec.\u0430\u0447\u0446\u0431\u0412\u0434\u041f\u043a\u043e\u0442\u044f\u043d\u0432\u0444\u043c\u043f\u0439\u0438\u044e\u043b\u0433\u043f\u044c]",
+                "file": "fonts/Raleway-Bold.ttf",
+                "name": "FONT_ORBITRON_BOLD_14",
+                "trackingAdjust": 1,
+                "type": "font"
+            },
+            {
+                "file": "images/charging_50.png",
+                "name": "IMAGE_CHARGING_50",
+                "type": "png"
+            },
+            {
+                "file": "images/charging_60.png",
+                "name": "IMAGE_CHARGING_60",
+                "type": "png"
+            },
+            {
+                "file": "images/charging_70.png",
+                "name": "IMAGE_CHARGING_70",
+                "type": "png"
+            },
+            {
+                "file": "images/charging_80.png",
+                "name": "IMAGE_CHARGING_80",
+                "type": "png"
+            },
+            {
+                "file": "images/charging_90.png",
+                "name": "IMAGE_CHARGING_90",
+                "type": "png"
+            },
+            {
+                "file": "images/charging_100.png",
+                "name": "IMAGE_CHARGING_100",
+                "type": "png"
+            },
+            {
+                "file": "images/bluetooth_off.png",
+                "name": "IMAGE_BLUETOOTH_OFF",
+                "type": "png"
+            },
+            {
+                "file": "images/bluetooth_on.png",
+                "name": "IMAGE_BLUETOOTH_ON",
+                "type": "png"
+            },
+            {
+                "file": "images/battery_0.png",
+                "name": "IMAGE_BATTERY_0",
+                "type": "png"
+            },
+            {
+                "file": "images/battery_10.png",
+                "name": "IMAGE_BATTERY_10",
+                "type": "png"
+            },
+            {
+                "file": "images/battery_20.png",
+                "name": "IMAGE_BATTERY_20",
+                "type": "png"
+            },
+            {
+                "file": "images/battery_30.png",
+                "name": "IMAGE_BATTERY_30",
+                "type": "png"
+            },
+            {
+                "file": "images/battery_40.png",
+                "name": "IMAGE_BATTERY_40",
+                "type": "png"
+            },
+            {
+                "file": "images/battery_50.png",
+                "name": "IMAGE_BATTERY_50",
+                "type": "png"
+            },
+            {
+                "file": "images/battery_60.png",
+                "name": "IMAGE_BATTERY_60",
+                "type": "png"
+            },
+            {
+                "file": "images/battery_70.png",
+                "name": "IMAGE_BATTERY_70",
+                "type": "png"
+            },
+            {
+                "file": "images/battery_80.png",
+                "name": "IMAGE_BATTERY_80",
+                "type": "png"
+            },
+            {
+                "file": "images/battery_90.png",
+                "name": "IMAGE_BATTERY_90",
+                "type": "png"
+            },
+            {
+                "file": "images/battery_100.png",
+                "name": "IMAGE_BATTERY_100",
+                "type": "png"
+            },
+            {
+                "file": "images/charging_0.png",
+                "name": "IMAGE_CHARGING_0",
+                "type": "png"
+            },
+            {
+                "file": "images/charging_10.png",
+                "name": "IMAGE_CHARGING_10",
+                "type": "png"
+            },
+            {
+                "file": "images/charging_20.png",
+                "name": "IMAGE_CHARGING_20",
+                "type": "png"
+            },
+            {
+                "file": "images/charging_30.png",
+                "name": "IMAGE_CHARGING_30",
+                "type": "png"
+            },
+            {
+                "file": "images/charging_40.png",
+                "name": "IMAGE_CHARGING_40",
+                "type": "png"
+            },
+            {
+                "file": "images/hourvibe_20_20.png",
+                "name": "IMAGE_VIBRATION_ON",
+                "type": "png"
             }
         ]
+    },
+    "shortName": "Orbitron-D",
+    "uuid": "f22cf930-ab94-11e3-a5e2-0800200c9a66",
+    "versionCode": 1,
+    "versionLabel": "1.3.4",
+    "watchapp": {
+        "watchface": true
     }
 }

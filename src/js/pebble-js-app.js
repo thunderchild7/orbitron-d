@@ -1,53 +1,42 @@
-
-var mConfig = {};
+// URL to your configuration page
+var config_url = "http://ewobo.co.uk/pebble/index2b.html?v=1.0";
 
 Pebble.addEventListener("ready", function(e) {
-  loadLocalData();
-  returnConfigToPebble();
+
 });
 
-Pebble.addEventListener("showConfiguration", function(e) {
-	Pebble.openURL(mConfig.configureUrl);
-});
+Pebble.addEventListener("showConfiguration", function(_event) {
+	var url = config_url;
 
-Pebble.addEventListener("webviewclosed",
-  function(e) {
-    if (e.response) {
-      var config = JSON.parse(e.response);
-      saveLocalData(config);
-      returnConfigToPebble();
-    }
-  }
-);
+	for(var i = 0, x = localStorage.length; i < x; i++) {
+		var key = localStorage.key(i);
+		var val = localStorage.getItem(key);
 
-function saveLocalData(config) {
-  console.log("loadLocalData() " + JSON.stringify(config));
-  
-
-  localStorage.setItem("invert", parseInt(config.invert)); 
-  localStorage.setItem("vibeminutes", parseInt(config.vibeminutes)); 
-  
-  loadLocalData();
-}
-function loadLocalData() {
-	mConfig.invert = parseInt(localStorage.getItem("invert"));
-	mConfig.vibeminutes = parseInt(localStorage.getItem("vibeminutes"));
-	mConfig.configureUrl = "http://ewobo.co.uk/config2.html";
-
-
-	if(isNaN(mConfig.invert)) {
-		mConfig.invert = 0;
+		if(val !== null) {
+			url += "&" + encodeURIComponent(key) + "=" + encodeURIComponent(val);
+		}
 	}
 
-	if(isNaN(mConfig.vibeminutes)) {
-		mConfig.vibeminutes = 0;
-	}   
+	console.log(url);
 
-}
-function returnConfigToPebble() {
-  console.log("Configuration window returned: " + JSON.stringify(mConfig));
-  Pebble.sendAppMessage({ 
-    "invert":parseInt(mConfig.invert), 
-    "vibeminutes":parseInt(mConfig.vibeminutes)
-  });    
-}
+	Pebble.openURL(url);
+});
+
+Pebble.addEventListener("webviewclosed", function(_event) {
+	if(_event.response) {
+		var values = JSON.parse(decodeURIComponent(_event.response));
+
+		for(var key in values) {
+			localStorage.setItem(key, values[key]);
+		}
+
+		Pebble.sendAppMessage(values,
+			function(_event) {
+				console.log("Successfully sent options to Pebble");
+			},
+			function(_event) {
+				console.log("Failed to send options to Pebble.\nError: " + _event.error.message);
+			}
+		);
+	}
+});

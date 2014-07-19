@@ -186,7 +186,7 @@
     "shortName": "Orbitron-D",
     "uuid": "f22cf930-ab94-11e3-a5e2-0800200c9a66",
     "versionCode": 1,
-    "versionLabel": "1.3.5",
+    "versionLabel": "1.3.6",
     "watchapp": {
         "watchface": true
     }

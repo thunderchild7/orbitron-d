@@ -385,7 +385,7 @@ static void remove_second_handler() {
 
 static void set_second_handler() {
    tick_timer_service_unsubscribe();
-   tick_timer_service_subscribe(SECOND_UNIT, handle_second_tick);
+   tick_timer_service_subscribe(SECOND_UNIT, handle_minute_tick);
 
 }
 void lost_connection_warning(void *);
@@ -550,7 +550,6 @@ void init() {
 		// If so, read it in to a variable
 		secondsMode = persist_read_int(SHOW_SECS);
 		persist_write_int(SHOW_SECS, secondsMode);
-
 	}
 	Tuplet initial_values[NUM_CONFIG_KEYS] = {
 	TupletInteger(INVERT_KEY, mInvert),
@@ -648,7 +647,7 @@ void init() {
   setDate(NULL);
  if (secondsMode == SECONDS_MODE_ON)
  {
-    tick_timer_service_subscribe(SECOND_UNIT, handle_second_tick);
+    tick_timer_service_subscribe(SECOND_UNIT, handle_minute_tick);
  }
  else {
      tick_timer_service_subscribe(MINUTE_UNIT, handle_minute_tick);
@@ -710,10 +709,6 @@ void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed) {
 	};
 }
 
-// Time handler called every second by the system
-void handle_second_tick(struct tm *tick_time, TimeUnits units_changed) {
-  display_second(tick_time);
-}
 
 int main(void) {
 

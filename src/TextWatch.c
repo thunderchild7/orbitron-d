@@ -162,22 +162,16 @@ const char* get_ordinal(int day)
 	case LANG_EN: 
 	if (day >= 11 && day <= 13) {
         return "th";
-    } else if (day % 10 == 1) {
-        return ORDINAL[language][day%10];
-    } else if (day % 10 == 2) {
-        return ORDINAL[language][day%10];
-    } else if (day % 10 == 3) {
-        return ORDINAL[language][day%10];
     } else {
         return ORDINAL[language][day%10];
-    };
+    }
 	break;
 	case LANG_FR:
 		if (day == 1) {
         return ORDINAL[language][day];
     } else {
         return ORDINAL[language][day%10];
-    } ;
+    }
 	break;
 	default :
 	return ORDINAL[language][day%10];

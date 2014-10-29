@@ -35,6 +35,8 @@
 #define GRAPHICS_MODE_INVERT  1
 #define CONNLOST_MODE_IGNORE  0
 #define CONNLOST_MODE_WARN    1
+#define ANIMATE_MODE_OFF      0
+#define ANIMATE_MODE_ON       1
 
 #define SECONDS_MODE_OFF  0
 #define SECONDS_MODE_ON   1
@@ -52,6 +54,7 @@ static int date_mode      = DATE_MODE_UK;
 static int language		= LANG_EN;
 static int bluetooth_mode = BLUETOOTH_MODE_NEVER;
 static int connlost_mode  = CONNLOST_MODE_IGNORE;
+static int animate_mode   = ANIMATE_MODE_ON;
 
 static int secondsMode = SECONDS_MODE_OFF;
 
@@ -92,7 +95,8 @@ enum {
 	BT_KEY = 0x6,
 	CONN_KEY = 0x7,
 	SHOW_SECS = 0x8,
-	NUM_CONFIG_KEYS = 0x8
+	ANIMATE_KEY = 0x9;
+	NUM_CONFIG_KEYS = 0x9
 };
 
 const char* WEEKDAY_NAMES[NUM_LANG][7] = { // 3 chars, 1 for utf-8, 1 for terminating 0
@@ -504,6 +508,10 @@ static void sync_tuple_changed_callback(const uint32_t key, const Tuple * new_tu
 			 remove_second_handler();
 		   }
 			break;
+		
+		case ANIMATE_KEY:
+			animate_mode = new_tuple->value->uint8;
+			persist_write_int(ANIMATE_KEY, animate_mode);
 	}
 }
 void init() {
@@ -545,6 +553,11 @@ void init() {
 		secondsMode = persist_read_int(SHOW_SECS);
 		persist_write_int(SHOW_SECS, secondsMode);
 	}
+	
+	if (persist_exists(ANIMATE_KEY)) {
+		// If so, read it in to a variable
+		animate_mode = persist_read_int(ANIMATE_KEY);
+	}
 	Tuplet initial_values[NUM_CONFIG_KEYS] = {
 	TupletInteger(INVERT_KEY, mInvert),
 	TupletInteger(VIBEMINUTES_KEY, mVibeMinutes),
@@ -553,7 +566,8 @@ void init() {
 	TupletInteger(LANG_KEY, language),
 	TupletInteger(BT_KEY, bluetooth_mode),
 	TupletInteger(CONN_KEY, connlost_mode),
-	TupletInteger(SHOW_SECS, secondsMode)
+	TupletInteger(SHOW_SECS, secondsMode),
+	TupletInteger(ANIMATE_KEY, animate_mode)
 	};
 
 	app_message_open(256, 256);

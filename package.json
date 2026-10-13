@@ -1,0 +1,203 @@
+{
+  "name": "orbitron-d",
+  "author": "One Green Light",
+  "version": "1.3.6",
+  "keywords": [
+    "pebble-app"
+  ],
+  "private": true,
+  "dependencies": {},
+  "pebble": {
+    "displayName": "Orbitron-D",
+    "uuid": "f22cf930-ab94-11e3-a5e2-0800200c9a66",
+    "sdkVersion": "3",
+    "enableMultiJS": false,
+    "targetPlatforms": [
+      "basalt"
+    ],
+    "capabilities": [
+      "configurable"
+    ],
+    "projectType": "native",
+    "watchapp": {
+      "watchface": true
+    },
+    "messageKeys": {
+      "battery": 2,
+      "bluetooth": 6,
+      "connlost": 7,
+      "datestyle": 5,
+      "language": 4,
+      "showseonds": 8,
+      "vibeminutes": 3
+    },
+    "resources": {
+      "media": [
+        {
+          "file": "images/menu_icon.png",
+          "menuIcon": true,
+          "name": "IMAGE_MENU_ICON",
+          "type": "png"
+        },
+        {
+          "characterRegex": "[0-9 A-Za-z,\u00ba\u00e9\u00e1\u00e5\u00e4\u00f6\u00f8\u00ec:.]",
+          "file": "fonts/Orbitron Light.ttf",
+          "name": "FONT_ORBITRON_LIGHT_14",
+          "type": "font"
+        },
+        {
+          "characterRegex": "[0-9:. ]",
+          "file": "fonts/Orbitron Medium.ttf",
+          "name": "FONT_WWDIGITAL_BOLD_40",
+          "type": "font"
+        },
+        {
+          "characterRegex": "[0-9:. ]",
+          "file": "fonts/Raleway-Bold.ttf",
+          "name": "FONT_ORBITRON_BOLD_16",
+          "trackingAdjust": 1,
+          "type": "font"
+        },
+        {
+          "characterRegex": "[A-Za-z 0-9,\u00e9\u00e1\u00e5\u00e4\u00f6\u00f8\u00ec.]",
+          "file": "fonts/Raleway-Bold.ttf",
+          "name": "FONT_ORBITRON_BOLD_15",
+          "trackingAdjust": 1,
+          "type": "font"
+        },
+        {
+          "characterRegex": "[A-Za-z 0-9,\u00e9\u00e1\u00e5\u00e4\u00f6\u00f8\u00ec.]",
+          "file": "fonts/Raleway-Bold.ttf",
+          "name": "FONT_ORBITRON_BOLD_14",
+          "trackingAdjust": 1,
+          "type": "font"
+        },
+        {
+          "file": "images/charging_50.png",
+          "name": "IMAGE_CHARGING_50",
+          "type": "png"
+        },
+        {
+          "file": "images/charging_60.png",
+          "name": "IMAGE_CHARGING_60",
+          "type": "png"
+        },
+        {
+          "file": "images/charging_70.png",
+          "name": "IMAGE_CHARGING_70",
+          "type": "png"
+        },
+        {
+          "file": "images/charging_80.png",
+          "name": "IMAGE_CHARGING_80",
+          "type": "png"
+        },
+        {
+          "file": "images/charging_90.png",
+          "name": "IMAGE_CHARGING_90",
+          "type": "png"
+        },
+        {
+          "file": "images/charging_100.png",
+          "name": "IMAGE_CHARGING_100",
+          "type": "png"
+        },
+        {
+          "file": "images/bluetooth_off.png",
+          "name": "IMAGE_BLUETOOTH_OFF",
+          "type": "png"
+        },
+        {
+          "file": "images/bluetooth_on.png",
+          "name": "IMAGE_BLUETOOTH_ON",
+          "type": "png"
+        },
+        {
+          "file": "images/battery_0.png",
+          "name": "IMAGE_BATTERY_0",
+          "type": "png"
+        },
+        {
+          "file": "images/battery_10.png",
+          "name": "IMAGE_BATTERY_10",
+          "type": "png"
+        },
+        {
+          "file": "images/battery_20.png",
+          "name": "IMAGE_BATTERY_20",
+          "type": "png"
+        },
+        {
+          "file": "images/battery_30.png",
+          "name": "IMAGE_BATTERY_30",
+          "type": "png"
+        },
+        {
+          "file": "images/battery_40.png",
+          "name": "IMAGE_BATTERY_40",
+          "type": "png"
+        },
+        {
+          "file": "images/battery_50.png",
+          "name": "IMAGE_BATTERY_50",
+          "type": "png"
+        },
+        {
+          "file": "images/battery_60.png",
+          "name": "IMAGE_BATTERY_60",
+          "type": "png"
+        },
+        {
+          "file": "images/battery_70.png",
+          "name": "IMAGE_BATTERY_70",
+          "type": "png"
+        },
+        {
+          "file": "images/battery_80.png",
+          "name": "IMAGE_BATTERY_80",
+          "type": "png"
+        },
+        {
+          "file": "images/battery_90.png",
+          "name": "IMAGE_BATTERY_90",
+          "type": "png"
+        },
+        {
+          "file": "images/battery_100.png",
+          "name": "IMAGE_BATTERY_100",
+          "type": "png"
+        },
+        {
+          "file": "images/charging_0.png",
+          "name": "IMAGE_CHARGING_0",
+          "type": "png"
+        },
+        {
+          "file": "images/charging_10.png",
+          "name": "IMAGE_CHARGING_10",
+          "type": "png"
+        },
+        {
+          "file": "images/charging_20.png",
+          "name": "IMAGE_CHARGING_20",
+          "type": "png"
+        },
+        {
+          "file": "images/charging_30.png",
+          "name": "IMAGE_CHARGING_30",
+          "type": "png"
+        },
+        {
+          "file": "images/charging_40.png",
+          "name": "IMAGE_CHARGING_40",
+          "type": "png"
+        },
+        {
+          "file": "images/hourvibe_20_20.png",
+          "name": "IMAGE_VIBRATION_ON",
+          "type": "png"
+        }
+      ]
+    }
+  }
+}

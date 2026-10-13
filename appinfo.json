@@ -4,7 +4,6 @@
         "bluetooth": 6,
         "connlost": 7,
         "datestyle": 5,
-        "invert": 1,
         "language": 4,
         "showseonds": 8,
         "vibeminutes": 3
@@ -24,7 +23,7 @@
                 "type": "png"
             },
             {
-                "characterRegex": "[0-9 A-Za-z,\u00ba\u00e9\u00e1\u00e5\u00e4\u00f6\u00f8\u00ec:.\u0430\u0447\u0446\u0431\u0412\u0434\u041f\u043a\u043e\u0442\u044f\u043d\u0432\u0444\u043c\u043f\u0439\u0438\u044e\u043b\u0433\u043f\u044c]",
+                "characterRegex": "[0-9 A-Za-z,\u00ba\u00e9\u00e1\u00e5\u00e4\u00f6\u00f8\u00ec:.]",
                 "file": "fonts/Orbitron Light.ttf",
                 "name": "FONT_ORBITRON_LIGHT_14",
                 "type": "font"
@@ -43,14 +42,14 @@
                 "type": "font"
             },
             {
-                "characterRegex": "[A-Za-z 0-9,\u00e9\u00e1\u00e5\u00e4\u00f6\u00f8\u00ec.\u0430\u0447\u0446\u0431\u0412\u0434\u041f\u043a\u043e\u0442\u044f\u043d\u0432\u0444\u043c\u043f\u0439\u0438\u044e\u043b\u0433\u043f\u044c]",
+                "characterRegex": "[A-Za-z 0-9,\u00e9\u00e1\u00e5\u00e4\u00f6\u00f8\u00ec.]",
                 "file": "fonts/Raleway-Bold.ttf",
                 "name": "FONT_ORBITRON_BOLD_15",
                 "trackingAdjust": 1,
                 "type": "font"
             },
             {
-                "characterRegex": "[A-Za-z 0-9,\u00e9\u00e1\u00e5\u00e4\u00f6\u00f8\u00ec.\u0430\u0447\u0446\u0431\u0412\u0434\u041f\u043a\u043e\u0442\u044f\u043d\u0432\u0444\u043c\u043f\u0439\u0438\u044e\u043b\u0433\u043f\u044c]",
+                "characterRegex": "[A-Za-z 0-9,\u00e9\u00e1\u00e5\u00e4\u00f6\u00f8\u00ec.]",
                 "file": "fonts/Raleway-Bold.ttf",
                 "name": "FONT_ORBITRON_BOLD_14",
                 "trackingAdjust": 1,

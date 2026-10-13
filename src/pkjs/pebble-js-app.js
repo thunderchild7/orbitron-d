@@ -1,5 +1,5 @@
 // URL to your configuration page
-var config_url = "http://ewobo.co.uk/pebble/index2d1.html?v=1.0";
+var config_url = "https://thunderchild7.github.io/orbitron-d/config/index.html?v=1.5";
 
 Pebble.addEventListener("ready", function(e) {
 

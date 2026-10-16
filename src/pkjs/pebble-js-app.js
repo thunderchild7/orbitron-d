@@ -1,5 +1,12 @@
 // URL to your configuration page
-var config_url = "https://thunderchild7.github.io/orbitron-d/config/index.html?v=1.5";
+var config_url = "https://thunderchild7.github.io/orbitron-d/config/index.html?v=1.6";
+
+function isRound() {
+	var info = (typeof Pebble.getActiveWatchInfo === "function") ? Pebble.getActiveWatchInfo() : null;
+	var platform = info && info.platform;
+
+	return platform === "chalk" || platform === "gabbro";
+}
 
 Pebble.addEventListener("ready", function(e) {
 
@@ -7,6 +14,10 @@ Pebble.addEventListener("ready", function(e) {
 
 Pebble.addEventListener("showConfiguration", function(_event) {
 	var url = config_url;
+
+	if (isRound()) {
+		url += "&round=1";
+	}
 
 	for(var i = 0, x = localStorage.length; i < x; i++) {
 		var key = localStorage.key(i);

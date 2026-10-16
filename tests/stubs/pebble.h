@@ -8,6 +8,16 @@
 #include <string.h>
 #include <time.h>
 
+#ifndef PBL_DISPLAY_WIDTH
+#define PBL_DISPLAY_WIDTH 144
+#endif
+#ifndef PBL_DISPLAY_HEIGHT
+#define PBL_DISPLAY_HEIGHT 168
+#endif
+#ifndef PBL_IF_ROUND_ELSE
+#define PBL_IF_ROUND_ELSE(if_true, if_false) (if_false)
+#endif
+
 typedef struct Window Window;
 typedef struct Layer Layer;
 typedef struct TextLayer TextLayer;
@@ -16,6 +26,7 @@ typedef struct GBitmap GBitmap;
 typedef struct Animation Animation;
 typedef struct PropertyAnimation PropertyAnimation;
 typedef struct AppTimer AppTimer;
+typedef struct GContext GContext;
 typedef struct AppSync { uint8_t unused; } AppSync;
 typedef struct GFont GFontImpl;
 typedef GFontImpl *GFont;
@@ -25,6 +36,7 @@ typedef struct { int16_t w; int16_t h; } GSize;
 typedef struct { GPoint origin; GSize size; } GRect;
 
 #define GRect(x, y, w, h) ((GRect){{(int16_t)(x), (int16_t)(y)}, {(int16_t)(w), (int16_t)(h)}})
+#define GPoint(x, y) ((GPoint){(int16_t)(x), (int16_t)(y)})
 #define ARRAY_LENGTH(array) (sizeof(array) / sizeof((array)[0]))
 
 typedef enum {
@@ -113,6 +125,13 @@ typedef void (*AppSyncTupleChangedCallback)(const uint32_t key, const Tuple *new
 #define RESOURCE_ID_IMAGE_CHARGING_100 40
 #define RESOURCE_ID_IMAGE_BLUETOOTH_OFF 50
 #define RESOURCE_ID_IMAGE_BLUETOOTH_ON 51
+#define RESOURCE_ID_IMAGE_VIBRATION_ON 52
+
+typedef enum {
+	GCornerNone = 0,
+	GCornersAll = 15
+} GCornerMask;
+typedef void (*LayerUpdateProc)(Layer *layer, GContext *ctx);
 
 Window *window_create(void);
 void window_stack_push(Window *window, bool animated);
@@ -125,6 +144,17 @@ void layer_set_frame(Layer *layer, GRect frame);
 GRect layer_get_frame(const Layer *layer);
 void layer_destroy(Layer *layer);
 void layer_set_hidden(Layer *layer, bool hidden);
+Layer *layer_create(GRect frame);
+void layer_set_update_proc(Layer *layer, LayerUpdateProc update_proc);
+GRect layer_get_bounds(const Layer *layer);
+
+void graphics_context_set_fill_color(GContext *ctx, GColor color);
+void graphics_context_set_stroke_color(GContext *ctx, GColor color);
+void graphics_fill_rect(GContext *ctx, GRect rect, uint16_t radius, GCornerMask mask);
+void graphics_draw_round_rect(GContext *ctx, GRect rect, uint16_t radius);
+void graphics_fill_circle(GContext *ctx, GPoint p, uint16_t radius);
+void graphics_draw_pixel(GContext *ctx, GPoint point);
+void graphics_draw_line(GContext *ctx, GPoint p0, GPoint p1);
 
 TextLayer *text_layer_create(GRect frame);
 void text_layer_set_text(TextLayer *text_layer, const char *text);

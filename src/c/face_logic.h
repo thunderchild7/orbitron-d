@@ -30,6 +30,17 @@
 #define BLUETOOTH_MODE_IFOFF 1
 #define BLUETOOTH_MODE_ALWAYS 2
 
+/* Orbitron D keeps the day and date at the bottom. Orbitron B stacks them
+   around the time. Orbitron is the time alone. */
+#define LAYOUT_D 0
+#define LAYOUT_B 1
+#define LAYOUT_ORBITRON 2
+#define LAYOUT_COUNT 3
+
+/* Same values as GTextAlignmentCenter and GTextAlignmentRight. */
+#define FACE_ALIGN_CENTER 1
+#define FACE_ALIGN_RIGHT 2
+
 /* Integer keys shared with appinfo.json appKeys and phone config messages. */
 enum {
 	BATTERY_KEY = 0x2,
@@ -39,11 +50,43 @@ enum {
 	BT_KEY = 0x6,
 	CONN_KEY = 0x7,
 	SHOW_SECS = 0x8,
-	ANIMATE_KEY = 0x9
+	ANIMATE_KEY = 0x9,
+	LAYOUT_KEY = 0xA
 };
+
+typedef struct {
+	int x;
+	int y;
+	int w;
+	int h;
+	int align;
+	bool visible;
+} FaceSlot;
+
+typedef struct {
+	FaceSlot time;
+	FaceSlot seconds;
+	FaceSlot day;
+	FaceSlot date;
+} FaceFrames;
 
 /* A saved Russian setting (8) and any other unknown value become English. */
 int face_supported_language(int language);
+
+/* Rectangle or round face the frames are fitted to. */
+typedef struct {
+	int width;
+	int height;
+	bool is_round;
+} FaceScreen;
+
+/* Unknown values become Orbitron D. A round face has no Orbitron D layout, so
+   that choice and any unknown value become Orbitron B. */
+int face_supported_layout(int layout, bool is_round);
+
+/* Text-layer frames. Seconds are drawn only on Orbitron D, which is rectangular. */
+void face_layout_frames(const FaceScreen *screen, int layout, bool seconds_on,
+		FaceFrames *out);
 
 /* Empty string when language or day-of-week is out of range. */
 const char *face_weekday(int language, int wday);
@@ -85,5 +128,31 @@ bool face_line_needs_update(const char *current, const char *next);
 
 /* count 0, 2, 4 buzz. Blinking continues while count is below 50. */
 void face_connlost_frame(int count, bool *icon_on, bool *buzz, bool *keep_going);
+
+/* Icon frame inside the status pill. x and y are relative to the pill. */
+typedef struct {
+	int x;
+	int y;
+	int w;
+	int h;
+	bool visible;
+} FaceIcon;
+
+/* Capsule along the top of the face. Hidden when every icon is off.
+   Order inside the pill is Bluetooth, battery, then vibrate.
+   On a round face the capsule sits low enough to stay inside the circle. */
+typedef struct {
+	int x;
+	int y;
+	int w;
+	int h;
+	bool visible;
+	FaceIcon bluetooth;
+	FaceIcon battery;
+	FaceIcon vibe;
+} FaceIsland;
+
+void face_status_island(const FaceScreen *screen, bool show_bluetooth, bool show_battery,
+		bool show_vibe, FaceIsland *out);
 
 #endif

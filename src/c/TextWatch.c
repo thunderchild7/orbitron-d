@@ -1,5 +1,6 @@
 #include <pebble.h>
 #include <ctype.h>
+#include <stdlib.h>
 #include "face_logic.h"
 
 #define DEBUG 0
@@ -23,6 +24,20 @@ static int connlost_mode  = CONNLOST_MODE_IGNORE;
 static int animate_mode   = ANIMATE_MODE_ON;
 
 static int secondsMode = SECONDS_MODE_OFF;
+static int layout_mode = LAYOUT_D;
+
+static bool is_round(void) {
+	return PBL_IF_ROUND_ELSE(true, false);
+}
+
+static FaceScreen watch_screen(void) {
+	FaceScreen screen;
+
+	screen.width = PBL_DISPLAY_WIDTH;
+	screen.height = PBL_DISPLAY_HEIGHT;
+	screen.is_round = is_round();
+	return screen;
+}
 
 Window *window;
 
@@ -37,6 +52,17 @@ static BitmapLayer *battery_layer;
 
 static GBitmap *bluetooth_images[4];
 static BitmapLayer *bluetooth_layer;
+
+static Layer *island_layer;
+static Layer *island_rim;
+static GBitmap *vibe_image;
+static BitmapLayer *vibe_layer;
+static bool phone_connected = true;
+static bool connlost_showing = false;
+static int battery_percent = 100;
+static bool battery_charging = false;
+
+static void apply_island(void);
 
 typedef struct {
   TextLayer *currentLayer;
@@ -96,7 +122,7 @@ void animationStoppedHandler(struct Animation *animation, bool finished, void *c
 {
   Layer *current = (Layer *)context;
   GRect rect = layer_get_frame(current);
-  rect.origin.x = 144;
+  rect.origin.x = rect.size.w;
   layer_set_frame(current, rect);
 }
 
@@ -104,7 +130,9 @@ void animationStoppedHandler(struct Animation *animation, bool finished, void *c
 void makeAnimationsForLayers(Line *line, TextLayer *current, TextLayer *next)
 {
   GRect rect = layer_get_frame((Layer*)next);
-  rect.origin.x -= 144;
+  int slide = rect.size.w;
+
+  rect.origin.x -= slide;
 
   destroy_property_animation(&(line->nextAnimation));
 
@@ -115,7 +143,7 @@ void makeAnimationsForLayers(Line *line, TextLayer *current, TextLayer *next)
   animation_schedule((Animation*)line->nextAnimation);
 
   GRect rect2 = layer_get_frame((Layer*)current);
-  rect2.origin.x -= 144;
+  rect2.origin.x -= slide;
 
   destroy_property_animation(&(line->currentAnimation));
 
@@ -185,6 +213,72 @@ void display_second(struct tm* pbltime) {
   //}
 
 }
+
+void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed);
+
+static bool seconds_are_drawn(void) {
+  FaceFrames frames;
+  FaceScreen screen = watch_screen();
+
+  face_layout_frames(&screen, layout_mode, secondsMode == SECONDS_MODE_ON, &frames);
+  return frames.seconds.visible;
+}
+
+static void place_slot(TextLayer *layer, const FaceSlot *slot) {
+  layer_set_frame((Layer *)layer, GRect(slot->x, slot->y, slot->w, slot->h));
+  text_layer_set_text_alignment(layer, (GTextAlignment)slot->align);
+  layer_set_hidden((Layer *)layer, !slot->visible);
+}
+
+static void apply_layout(void) {
+  FaceFrames frames;
+  FaceScreen screen = watch_screen();
+  GRect current;
+  GRect next;
+  bool current_on_screen;
+
+  if (day == NULL || date == NULL || line4 == NULL || line2.currentLayer == NULL) {
+    return;
+  }
+
+  face_layout_frames(&screen, layout_mode, secondsMode == SECONDS_MODE_ON, &frames);
+  current = layer_get_frame((Layer *)line2.currentLayer);
+  next = layer_get_frame((Layer *)line2.nextLayer);
+  current_on_screen = abs(current.origin.x - frames.time.x) <= abs(next.origin.x - frames.time.x);
+  current.origin.y = frames.time.y;
+  current.size.w = frames.time.w;
+  current.size.h = frames.time.h;
+  next.origin.y = frames.time.y;
+  next.size.w = frames.time.w;
+  next.size.h = frames.time.h;
+  if (current_on_screen) {
+    current.origin.x = frames.time.x;
+    next.origin.x = frames.time.x + frames.time.w;
+  } else {
+    next.origin.x = frames.time.x;
+    current.origin.x = frames.time.x + frames.time.w;
+  }
+  layer_set_frame((Layer *)line2.currentLayer, current);
+  layer_set_frame((Layer *)line2.nextLayer, next);
+  text_layer_set_text_alignment(line2.currentLayer, (GTextAlignment)frames.time.align);
+  text_layer_set_text_alignment(line2.nextLayer, (GTextAlignment)frames.time.align);
+  place_slot(line4, &frames.seconds);
+  place_slot(day, &frames.day);
+  place_slot(date, &frames.date);
+}
+
+static void refresh_tick(void) {
+  tick_timer_service_unsubscribe();
+  if (seconds_are_drawn()) {
+    tick_timer_service_subscribe(SECOND_UNIT, handle_minute_tick);
+  } else {
+    tick_timer_service_subscribe(MINUTE_UNIT, handle_minute_tick);
+    if (line4 != NULL) {
+      text_layer_set_text(line4, "");
+    }
+  }
+}
+
 void display_time(struct tm* pbltime) {
 
   //  check for empty time
@@ -201,7 +295,7 @@ void display_time(struct tm* pbltime) {
   if (needToUpdateLine(&line2, line2Str, time_text)) {
     updateLineTo(&line2, line2Str, time_text);
   }
- if (secondsMode == SECONDS_MODE_ON)
+ if (seconds_are_drawn())
  {
     display_second(NULL);
  }
@@ -214,29 +308,127 @@ void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed);
 void handle_second_tick(struct tm *tick_time, TimeUnits units_changed);
 
 
-static void remove_second_handler() {
-   tick_timer_service_unsubscribe();
-   tick_timer_service_subscribe(MINUTE_UNIT, handle_minute_tick);
-  static char second_text[] = "";
-
-  text_layer_set_text(line4, second_text);
-  
-}
-
-static void set_second_handler() {
-   tick_timer_service_unsubscribe();
-   tick_timer_service_subscribe(SECOND_UNIT, handle_minute_tick);
-
-}
 void lost_connection_warning(void *);
 
+/* Largest dx with dx^2 + dy^2 <= radius^2. Diameter is 2 * radius + 1. */
+static int capsule_dx(int radius, int dy) {
+  int dx = radius;
+
+  if (dy < 0) {
+    dy = -dy;
+  }
+  while (dx > 0 && (dx * dx + dy * dy) > (radius * radius)) {
+    dx--;
+  }
+  return dx;
+}
+
+static void draw_row(GContext *ctx, int y, int left, int right) {
+  if (right < left) {
+    return;
+  }
+  if (left == right) {
+    graphics_draw_pixel(ctx, GPoint(left, y));
+    return;
+  }
+  graphics_draw_line(ctx, GPoint(left, y), GPoint(right, y));
+}
+
+/* White capsule, then a black capsule one pixel inside. Icons paint next. */
+static void island_update_proc(Layer *layer, GContext *ctx) {
+  GRect bounds = layer_get_bounds(layer);
+  int radius = (bounds.size.h - 1) / 2;
+  int left_c = radius;
+  int right_c = bounds.size.w - 1 - radius;
+  int y;
+
+  if (bounds.size.w < radius * 2 || radius < 2) {
+    return;
+  }
+
+  graphics_context_set_stroke_color(ctx, GColorWhite);
+  for (y = 0; y <= radius * 2; y++) {
+    int dx = capsule_dx(radius, y - radius);
+    draw_row(ctx, y, left_c - dx, right_c + dx);
+  }
+
+  graphics_context_set_stroke_color(ctx, GColorBlack);
+  for (y = 1; y <= radius * 2 - 1; y++) {
+    int dx = capsule_dx(radius - 1, y - radius);
+    draw_row(ctx, y, left_c - dx, right_c + dx);
+  }
+}
+
+/* Icons are child layers, so redraw the ring after them. */
+static void island_rim_proc(Layer *layer, GContext *ctx) {
+  GRect bounds = layer_get_bounds(layer);
+  int radius = (bounds.size.h - 1) / 2;
+  int left_c = radius;
+  int right_c = bounds.size.w - 1 - radius;
+  int y;
+
+  if (bounds.size.w < radius * 2 || radius < 2) {
+    return;
+  }
+
+  graphics_context_set_stroke_color(ctx, GColorWhite);
+  for (y = 0; y <= radius * 2; y++) {
+    int dx = capsule_dx(radius, y - radius);
+    int outer_left = left_c - dx;
+    int outer_right = right_c + dx;
+
+    if (y == 0 || y == radius * 2) {
+      draw_row(ctx, y, outer_left, outer_right);
+    } else {
+      int idx = capsule_dx(radius - 1, y - radius);
+      draw_row(ctx, y, outer_left, left_c - idx - 1);
+      draw_row(ctx, y, right_c + idx + 1, outer_right);
+    }
+  }
+}
+
+static void place_icon(BitmapLayer *layer, const FaceIcon *icon) {
+  layer_set_frame(bitmap_layer_get_layer(layer), GRect(icon->x, icon->y, icon->w, icon->h));
+  layer_set_hidden(bitmap_layer_get_layer(layer), !icon->visible);
+}
+
+static void apply_island(void) {
+  FaceIsland island;
+  FaceScreen screen = watch_screen();
+  bool show_bluetooth;
+  bool show_battery;
+
+  if (island_layer == NULL) {
+    return;
+  }
+
+  show_bluetooth = connlost_showing
+      || !face_bluetooth_hidden(bluetooth_mode, phone_connected);
+  show_battery = face_battery_visible(battery_mode, battery_percent, battery_charging);
+  face_status_island(&screen, show_bluetooth, show_battery, mVibeMinutes > 0, &island);
+  layer_set_hidden(island_layer, !island.visible);
+  if (island.visible) {
+    layer_set_frame(island_layer, GRect(island.x, island.y, island.w, island.h));
+    if (island_rim != NULL) {
+      layer_set_frame(island_rim, GRect(0, 0, island.w, island.h));
+    }
+  }
+  place_icon(bluetooth_layer, &island.bluetooth);
+  place_icon(battery_layer, &island.battery);
+  place_icon(vibe_layer, &island.vibe);
+}
+
 void handle_bluetooth(bool connected) {
+  phone_connected = connected;
   bitmap_layer_set_bitmap(bluetooth_layer, bluetooth_images[connected ? 1 : 0]);
-  layer_set_hidden(bitmap_layer_get_layer(bluetooth_layer),
-    face_bluetooth_hidden(bluetooth_mode, connected));
-  if (was_connected && !connected && connlost_mode == CONNLOST_MODE_WARN)
-      lost_connection_warning((void*) 0);
+  if (was_connected && !connected && connlost_mode == CONNLOST_MODE_WARN) {
+    was_connected = connected;
+    lost_connection_warning((void*) 0);
+    return;
+  }
   was_connected = connected;
+  connlost_showing = false;
+  apply_island();
 }
 
 void lost_connection_warning(void *data) {
@@ -247,20 +439,23 @@ void lost_connection_warning(void *data) {
 
   face_connlost_frame(count, &icon_on, &buzz, &keep_going);
   bitmap_layer_set_bitmap(bluetooth_layer, bluetooth_images[icon_on ? 1 : 0]);
-  layer_set_hidden(bitmap_layer_get_layer(bluetooth_layer), false);
+  connlost_showing = keep_going;
   if (buzz)
     vibes_short_pulse();
-  if (keep_going)
+  if (keep_going) {
+    apply_island();
     app_timer_register(300, lost_connection_warning, (void*) (count+1));
-  else
+  } else {
     handle_bluetooth(bluetooth_connection_service_peek());
+  }
 }
 
 void handle_battery(BatteryChargeState charge_state) {
+  battery_percent = charge_state.charge_percent;
+  battery_charging = charge_state.is_charging;
   bitmap_layer_set_bitmap(battery_layer, battery_images[
       face_battery_image_index(charge_state.charge_percent, charge_state.is_charging)]);
-  layer_set_hidden(bitmap_layer_get_layer(battery_layer),
-      !face_battery_visible(battery_mode, charge_state.charge_percent, charge_state.is_charging));
+  apply_island();
 }
 
 // Configure for the time line
@@ -292,6 +487,7 @@ static void sync_tuple_changed_callback(const uint32_t key, const Tuple * new_tu
 		case VIBEMINUTES_KEY:
 			mVibeMinutes = new_tuple->value->int32;
 		    persist_write_int(VIBEMINUTES_KEY, mVibeMinutes);
+			apply_island();
 			break;
 		
 		case DATESTYLE_KEY:
@@ -322,18 +518,17 @@ static void sync_tuple_changed_callback(const uint32_t key, const Tuple * new_tu
 		    break;
 		
 		case SHOW_SECS:
-		    if (secondsMode == SECONDS_MODE_ON) {				
-			    remove_second_handler();
-			}
 			secondsMode = new_tuple->value->uint8;
 		    persist_write_int(SHOW_SECS, secondsMode);
-			if (secondsMode == SECONDS_MODE_ON) {
-				set_second_handler();
-			}
-		   else
-		   {
-			 remove_second_handler();
-		   }
+			apply_layout();
+			refresh_tick();
+			break;
+
+		case LAYOUT_KEY:
+			layout_mode = face_supported_layout(new_tuple->value->uint8, is_round());
+			persist_write_int(LAYOUT_KEY, layout_mode);
+			apply_layout();
+			refresh_tick();
 			break;
 		
 		case ANIMATE_KEY:
@@ -374,6 +569,11 @@ void init() {
 		secondsMode = persist_read_int(SHOW_SECS);
 		persist_write_int(SHOW_SECS, secondsMode);
 	}
+
+	if (persist_exists(LAYOUT_KEY)) {
+		layout_mode = persist_read_int(LAYOUT_KEY);
+	}
+	layout_mode = face_supported_layout(layout_mode, is_round());
 	
 	if (persist_exists(ANIMATE_KEY)) {
 		// If so, read it in to a variable
@@ -387,7 +587,8 @@ void init() {
 	TupletInteger(BT_KEY, bluetooth_mode),
 	TupletInteger(CONN_KEY, connlost_mode),
 	TupletInteger(SHOW_SECS, secondsMode),
-	TupletInteger(ANIMATE_KEY, animate_mode)
+	TupletInteger(ANIMATE_KEY, animate_mode),
+	TupletInteger(LAYOUT_KEY, layout_mode)
 	};
 
 	app_message_open(256, 256);
@@ -462,24 +663,32 @@ void init() {
      battery_images[20] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_CHARGING_90);  
 	 battery_images[21] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_CHARGING_100);  
 
-	battery_layer = bitmap_layer_create(GRect(93, 3, 50, 16));
-  layer_add_child(window_get_root_layer(window), bitmap_layer_get_layer(battery_layer));
+	island_layer = layer_create(GRect(0, 1, 144, 25));
+  layer_set_update_proc(island_layer, island_update_proc);
+  layer_add_child(window_get_root_layer(window), island_layer);
+
+  battery_layer = bitmap_layer_create(GRect(0, 0, 50, 16));
+  layer_add_child(island_layer, bitmap_layer_get_layer(battery_layer));
 
   bluetooth_images[0] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BLUETOOTH_OFF);  
   bluetooth_images[1] = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BLUETOOTH_ON);  
-  bluetooth_layer = bitmap_layer_create(GRect(1, 3, 45, 20));
-  layer_add_child(window_get_root_layer(window), bitmap_layer_get_layer(bluetooth_layer));
+  bluetooth_layer = bitmap_layer_create(GRect(0, 0, 45, 16));
+  layer_add_child(island_layer, bitmap_layer_get_layer(bluetooth_layer));
 
+  vibe_image = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_VIBRATION_ON);
+  vibe_layer = bitmap_layer_create(GRect(0, 0, 20, 20));
+  bitmap_layer_set_bitmap(vibe_layer, vibe_image);
+  layer_add_child(island_layer, bitmap_layer_get_layer(vibe_layer));
+
+  island_rim = layer_create(GRect(0, 0, 144, 25));
+  layer_set_update_proc(island_rim, island_rim_proc);
+  layer_add_child(island_layer, island_rim);
+
+  apply_layout();
   // Configure time on init so we don't have a blank face
   display_time(NULL);
   setDate(NULL);
- if (secondsMode == SECONDS_MODE_ON)
- {
-    tick_timer_service_subscribe(SECOND_UNIT, handle_minute_tick);
- }
- else {
-     tick_timer_service_subscribe(MINUTE_UNIT, handle_minute_tick);
- }
+  refresh_tick();
 
   battery_state_service_subscribe(&handle_battery);
   handle_battery(battery_state_service_peek());
@@ -511,6 +720,10 @@ void deinit() {
   bitmap_layer_destroy(bluetooth_layer);
   for (int i = 0; i < 2; i++)
     gbitmap_destroy(bluetooth_images[i]);
+  bitmap_layer_destroy(vibe_layer);
+  gbitmap_destroy(vibe_image);
+  layer_destroy(island_rim);
+  layer_destroy(island_layer);
 	
   window_destroy(window);
 }

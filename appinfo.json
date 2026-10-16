@@ -5,6 +5,7 @@
         "connlost": 7,
         "datestyle": 5,
         "language": 4,
+        "layout": 10,
         "showseonds": 8,
         "vibeminutes": 3
     },

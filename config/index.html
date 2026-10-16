@@ -69,18 +69,22 @@
 			object-fit: fill;
 		}
 		.icon[hidden] { display: none; }
-		.bluetooth {
-			left: calc(1 * var(--u));
-			top: calc(3 * var(--u));
-			width: calc(45 * var(--u));
-			height: calc(16 * var(--u));
+		.island {
+			position: absolute;
+			overflow: hidden;
+			border-radius: 999px;
+			background: #000;
 		}
-		.battery {
-			left: calc(93 * var(--u));
-			top: calc(3 * var(--u));
-			width: calc(50 * var(--u));
-			height: calc(16 * var(--u));
+		.island::after {
+			content: "";
+			position: absolute;
+			inset: 0;
+			border: 1px solid #fff;
+			border-radius: inherit;
+			pointer-events: none;
 		}
+		.island[hidden] { display: none; }
+		.island .icon { position: absolute; }
 		.time {
 			position: absolute;
 			top: calc(47 * var(--u));
@@ -151,6 +155,7 @@
 			padding: 0.85rem 0;
 			border-bottom: 1px solid #1c1c1c;
 		}
+		.choice[hidden] { display: none; }
 		.choice input { margin-right: 0.75rem; }
 		.hint {
 			display: block;
@@ -212,8 +217,11 @@
 			<p class="preview-label">Preview</p>
 			<div class="bezel">
 				<div class="face" id="face">
-					<img id="face-bluetooth" class="icon bluetooth" alt="Bluetooth" hidden>
-					<img id="face-battery" class="icon battery" alt="Battery" hidden>
+					<div id="face-island" class="island" hidden>
+						<img id="face-bluetooth" class="icon bluetooth" alt="Bluetooth" hidden>
+						<img id="face-battery" class="icon battery" alt="Battery" hidden>
+						<img id="face-vibe" class="icon vibe" alt="Vibrate" src="../resources/images/hourvibe_20_20.png" hidden>
+					</div>
 					<p id="face-time" class="time">10:43</p>
 					<p id="face-seconds" class="seconds"></p>
 					<p id="face-day" class="day">Saturday</p>
@@ -226,6 +234,21 @@
 		<form id="config" autocomplete="off">
 			<fieldset>
 				<legend>Face</legend>
+				<label class="choice" id="layout-d">
+					<input type="radio" name="layout" value="0" checked>
+					Orbitron D
+					<span class="hint">Time in the middle. Day and date sit at the bottom.</span>
+				</label>
+				<label class="choice">
+					<input type="radio" name="layout" value="1">
+					Orbitron B
+					<span class="hint">Day, time, and date stacked in the middle.</span>
+				</label>
+				<label class="choice">
+					<input type="radio" name="layout" value="2">
+					Orbitron
+					<span class="hint">Time only.</span>
+				</label>
 				<label class="choice">
 					<input type="radio" name="showseonds" value="0" checked>
 					Hide seconds
@@ -233,7 +256,7 @@
 				<label class="choice">
 					<input type="radio" name="showseonds" value="1">
 					Show seconds
-					<span class="hint">Draws the seconds under the time. The watch wakes every second.</span>
+					<span class="hint">Draws the seconds under the time on the Orbitron D layout. The watch wakes every second.</span>
 				</label>
 				<label class="choice">
 					<input type="radio" name="datestyle" value="0" checked>
@@ -408,7 +431,11 @@
 				datestyle: clampChoice(num("datestyle", 0), [0, 1], 0),
 				bluetooth: clampChoice(num("bluetooth", 0), [0, 1, 2], 0),
 				connlost: clampChoice(num("connlost", 0), [0, 1], 0),
-				showseonds: clampChoice(num("showseonds", 0), [0, 1], 0)
+				showseonds: clampChoice(num("showseonds", 0), [0, 1], 0),
+				layout: supportedLayout(
+					clampChoice(num("layout", 0), [0, 1, 2], 0),
+					isRound(params && params.round)
+				)
 			};
 		}
 
@@ -482,6 +509,7 @@
 		}
 
 		function applySettings(settings) {
+			setRadio("layout", settings.layout);
 			setRadio("showseonds", settings.showseonds);
 			setRadio("datestyle", settings.datestyle);
 			setRadio("battery", settings.battery);
@@ -511,6 +539,23 @@
 			renderPreview(settings);
 		}
 
+		var watchRound = false;
+
+		function isRound(value) {
+			return value === 1 || value === true || value === "1"
+				|| value === "chalk" || value === "gabbro";
+		}
+
+		function supportedLayout(layout, round) {
+			if (round && (layout === 0 || layout < 0 || layout > 2)) {
+				return 1;
+			}
+			if (layout !== 0 && layout !== 1 && layout !== 2) {
+				return 0;
+			}
+			return layout;
+		}
+
 		function currentSettings() {
 			return readSettings({
 				battery: selectedValue("battery"),
@@ -519,7 +564,9 @@
 				datestyle: selectedValue("datestyle"),
 				bluetooth: selectedValue("bluetooth"),
 				connlost: selectedValue("connlost"),
-				showseonds: selectedValue("showseonds")
+				showseonds: selectedValue("showseonds"),
+				layout: selectedValue("layout"),
+				round: watchRound ? "1" : "0"
 			});
 		}
 
@@ -567,6 +614,55 @@
 			return mode === 0 || (mode === 1 && connected);
 		}
 
+		function statusIsland(showBluetooth, showBattery, showVibe) {
+			var order = [];
+			var island = {
+				x: 0,
+				y: 1,
+				w: 0,
+				h: 25,
+				visible: false,
+				bluetooth: { x: 0, y: 0, w: 45, h: 16, visible: false },
+				battery: { x: 0, y: 0, w: 50, h: 16, visible: false },
+				vibe: { x: 0, y: 0, w: 20, h: 20, visible: false }
+			};
+			var gap = 3;
+			var padX = 4;
+			var content = 0;
+			var cursor;
+			var i;
+
+			if (showBluetooth) {
+				order.push(island.bluetooth);
+			}
+			if (showBattery) {
+				order.push(island.battery);
+			}
+			if (showVibe) {
+				order.push(island.vibe);
+			}
+			if (order.length === 0) {
+				return island;
+			}
+			for (i = 0; i < order.length; i++) {
+				content += order[i].w;
+				if (i > 0) {
+					content += gap;
+				}
+			}
+			island.visible = true;
+			island.w = content + padX * 2;
+			island.x = Math.floor((144 - island.w) / 2);
+			cursor = padX;
+			for (i = 0; i < order.length; i++) {
+				order[i].visible = true;
+				order[i].x = cursor;
+				order[i].y = Math.floor((island.h - order[i].h) / 2);
+				cursor += order[i].w + gap;
+			}
+			return island;
+		}
+
 		function batteryFile(percent, charging) {
 			var step = Math.floor(percent / 10);
 			if (step < 0) {
@@ -578,8 +674,38 @@
 			return (charging ? "charging_" : "battery_") + (step * 10) + ".png";
 		}
 
+		var FACE_ALIGN_CENTER = 1;
+		var FACE_ALIGN_RIGHT = 2;
+
+		function layoutFrames(layout, secondsOn) {
+			var time = { x: 0, y: 47, w: 144, h: 50, align: FACE_ALIGN_CENTER, visible: true };
+			var seconds = { x: 0, y: 88, w: 136, h: 20, align: FACE_ALIGN_RIGHT, visible: false };
+			var day = { x: 0, y: 128, w: 142, h: 20, align: FACE_ALIGN_RIGHT, visible: true };
+			var date = { x: 0, y: 146, w: 142, h: 18, align: FACE_ALIGN_RIGHT, visible: true };
+
+			if (layout === 1) {
+				day = { x: 0, y: 32, w: 144, h: 22, align: FACE_ALIGN_CENTER, visible: true };
+				time = { x: 0, y: 51, w: 144, h: 50, align: FACE_ALIGN_CENTER, visible: true };
+				date = { x: 0, y: 91, w: 144, h: 24, align: FACE_ALIGN_CENTER, visible: true };
+			} else if (layout === 2) {
+				day.visible = false;
+				date.visible = false;
+			} else if (secondsOn) {
+				seconds.visible = true;
+			}
+			return { time: time, seconds: seconds, day: day, date: date };
+		}
+
 		function previewCaption(settings) {
 			var parts = [];
+			if (settings.round) {
+				parts.push("Orbitron D stays off on a round watch.");
+			}
+			if (settings.layout === 2) {
+				parts.push("Day, date, and seconds stay off.");
+			} else if (settings.layout === 1 && settings.showseonds === 1) {
+				parts.push("Seconds stay off on this layout.");
+			}
 			if (settings.battery === 0) {
 				parts.push("Battery shows only while charging.");
 			} else if (settings.battery === 1) {
@@ -601,19 +727,34 @@
 			return parts.join(" ");
 		}
 
-		function previewFace(settings) {
+		function previewFace(settings, round) {
 			var sample = PREVIEW_SAMPLE;
+			var useRound = !!round || isRound(settings && settings.round);
+			var layout = supportedLayout(settings.layout, useRound);
+			var slots = layoutFrames(layout, settings.showseonds === 1);
 			var showBattery = batteryVisible(settings.battery, sample.chargePercent, sample.charging);
+			var showBluetooth = !bluetoothHidden(settings.bluetooth, sample.connected);
+			var captionSettings = {
+				layout: layout,
+				showseonds: settings.showseonds,
+				battery: settings.battery,
+				bluetooth: settings.bluetooth,
+				connlost: settings.connlost,
+				vibeminutes: settings.vibeminutes,
+				round: useRound
+			};
 			return {
 				time: sample.hourText,
-				seconds: settings.showseonds === 1 ? sample.secondsText : "",
+				seconds: slots.seconds.visible ? sample.secondsText : "",
 				day: weekdayName(settings.language, sample.wday),
 				date: formatPreviewDate(settings.language, settings.datestyle, sample.day, sample.month, sample.year),
+				slots: slots,
+				island: statusIsland(showBluetooth, showBattery, settings.vibeminutes > 0),
 				batteryVisible: showBattery,
 				batterySrc: "../resources/images/" + batteryFile(sample.chargePercent, sample.charging),
-				bluetoothVisible: !bluetoothHidden(settings.bluetooth, sample.connected),
+				bluetoothVisible: showBluetooth,
 				bluetoothSrc: "../resources/images/" + (sample.connected ? "bluetooth_on.png" : "bluetooth_off.png"),
-				caption: previewCaption(settings)
+				caption: previewCaption(captionSettings)
 			};
 		}
 
@@ -635,26 +776,85 @@
 			}
 		}
 
+		function placeSlot(id, slot) {
+			var node = document.getElementById(id);
+			if (!node) {
+				return;
+			}
+			node.hidden = !slot.visible;
+			node.style.top = "calc(" + slot.y + " * var(--u))";
+			node.style.textAlign = slot.align === FACE_ALIGN_RIGHT ? "right" : "center";
+			if (slot.align === FACE_ALIGN_RIGHT) {
+				node.style.left = "auto";
+				node.style.right = "calc(" + (144 - (slot.x + slot.w)) + " * var(--u))";
+				node.style.width = "auto";
+			} else {
+				node.style.left = "0";
+				node.style.right = "0";
+				node.style.width = "100%";
+			}
+		}
+
+		function placeIcon(id, slot) {
+			var node = document.getElementById(id);
+			if (!node) {
+				return;
+			}
+			node.hidden = !slot.visible;
+			node.style.left = "calc(" + slot.x + " * var(--u))";
+			node.style.top = "calc(" + slot.y + " * var(--u))";
+			node.style.width = "calc(" + slot.w + " * var(--u))";
+			node.style.height = "calc(" + slot.h + " * var(--u))";
+		}
+
+		function placeIsland(island) {
+			var node = document.getElementById("face-island");
+			if (!node) {
+				return;
+			}
+			node.hidden = !island.visible;
+			node.style.left = "calc(" + island.x + " * var(--u))";
+			node.style.top = "calc(" + island.y + " * var(--u))";
+			node.style.width = "calc(" + island.w + " * var(--u))";
+			node.style.height = "calc(" + island.h + " * var(--u))";
+			placeIcon("face-bluetooth", island.bluetooth);
+			placeIcon("face-battery", island.battery);
+			placeIcon("face-vibe", island.vibe);
+		}
+
 		function renderPreview(settings) {
 			var face;
+			var layoutD;
 			if (typeof document === "undefined" || !document.getElementById) {
 				return;
 			}
-			face = previewFace(settings);
+			layoutD = document.getElementById("layout-d");
+			if (layoutD) {
+				layoutD.hidden = watchRound;
+			}
+			face = previewFace(settings, watchRound);
 			setText("face-time", face.time);
 			setText("face-seconds", face.seconds);
 			setText("face-day", face.day);
 			setText("face-date", face.date);
 			setText("face-caption", face.caption);
+			placeSlot("face-time", face.slots.time);
+			placeSlot("face-seconds", face.slots.seconds);
+			placeSlot("face-day", face.slots.day);
+			placeSlot("face-date", face.slots.date);
 			setIcon("face-battery", face.batteryVisible, face.batterySrc);
 			setIcon("face-bluetooth", face.bluetoothVisible, face.bluetoothSrc);
+			placeIsland(face.island);
 		}
 
 		function boot() {
+			var params;
 			if (typeof document === "undefined" || !document.getElementById) {
 				return;
 			}
-			applySettings(readSettings(parseQuery(window.location.search)));
+			params = parseQuery(window.location.search);
+			watchRound = isRound(params.round);
+			applySettings(readSettings(params));
 			document.getElementById("config").onsubmit = function(event) {
 				if (event && event.preventDefault) {
 					event.preventDefault();

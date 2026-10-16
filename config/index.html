@@ -5,7 +5,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta name="theme-color" content="#000000">
 	<title>Orbitron-D</title>
-	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&amp;display=swap">
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&amp;family=Raleway:wght@700&amp;display=swap">
 	<style>
 		* { box-sizing: border-box; }
 		html, body { margin: 0; background: #000; color: #fff; }
@@ -25,11 +25,113 @@
 			text-transform: uppercase;
 		}
 		h1 {
-			margin: 0.2rem 0 1.75rem;
+			margin: 0.2rem 0 1.25rem;
 			font-family: Orbitron, "Avenir Next Condensed", sans-serif;
 			font-size: 1.75rem;
 			font-weight: 500;
 			letter-spacing: 0.04em;
+		}
+		.preview {
+			--u: 1.35px;
+			position: sticky;
+			top: 0;
+			z-index: 1;
+			margin: 0 -1.25rem 1.5rem;
+			padding: 0 1.25rem 0.85rem;
+			background: #000;
+			border-bottom: 1px solid #1c1c1c;
+		}
+		.preview-label {
+			margin: 0 0 0.65rem;
+			color: #8d8d8d;
+			font-size: 0.75rem;
+			letter-spacing: 0.14em;
+			text-transform: uppercase;
+		}
+		.bezel {
+			width: fit-content;
+			margin: 0 auto;
+			padding: calc(7 * var(--u));
+			border: 1px solid #2a2a2a;
+			border-radius: 16px;
+			background: #050505;
+		}
+		.face {
+			position: relative;
+			width: calc(144 * var(--u));
+			height: calc(168 * var(--u));
+			overflow: hidden;
+			background: #000;
+		}
+		.face p { margin: 0; }
+		.icon {
+			position: absolute;
+			object-fit: fill;
+		}
+		.icon[hidden] { display: none; }
+		.bluetooth {
+			left: calc(1 * var(--u));
+			top: calc(3 * var(--u));
+			width: calc(45 * var(--u));
+			height: calc(16 * var(--u));
+		}
+		.battery {
+			left: calc(93 * var(--u));
+			top: calc(3 * var(--u));
+			width: calc(50 * var(--u));
+			height: calc(16 * var(--u));
+		}
+		.time {
+			position: absolute;
+			top: calc(47 * var(--u));
+			left: 0;
+			width: 100%;
+			height: calc(50 * var(--u));
+			font-family: Orbitron, "Avenir Next Condensed", sans-serif;
+			font-size: calc(36 * var(--u));
+			font-weight: 500;
+			line-height: calc(50 * var(--u));
+			text-align: center;
+		}
+		.seconds, .day, .date {
+			position: absolute;
+			right: calc(4 * var(--u));
+			font-family: Raleway, "Avenir Next Condensed", sans-serif;
+			font-weight: 700;
+			letter-spacing: calc(0.4 * var(--u));
+			text-align: right;
+			white-space: nowrap;
+		}
+		.seconds {
+			top: calc(88 * var(--u));
+			right: calc(8 * var(--u));
+			font-size: calc(16 * var(--u));
+			line-height: calc(18 * var(--u));
+		}
+		.day {
+			top: calc(126 * var(--u));
+			font-size: calc(15 * var(--u));
+			line-height: calc(18 * var(--u));
+		}
+		.date {
+			top: calc(146 * var(--u));
+			font-size: calc(14 * var(--u));
+			line-height: calc(16 * var(--u));
+		}
+		.preview-sample, .preview-caption {
+			max-width: 22rem;
+			margin: 0.7rem auto 0;
+			color: #8d8d8d;
+			font-size: 0.8125rem;
+			text-align: center;
+		}
+		.preview-caption {
+			min-height: 2.6em;
+			margin-top: 0.2rem;
+			color: #cfcfcf;
+		}
+		@media (max-width: 360px) {
+			.preview { --u: 1.15px; }
 		}
 		fieldset {
 			margin: 0 0 1.75rem;
@@ -106,6 +208,21 @@
 	<main>
 		<p class="brand">One Green Light</p>
 		<h1>Orbitron-D</h1>
+		<section class="preview" aria-label="Preview">
+			<p class="preview-label">Preview</p>
+			<div class="bezel">
+				<div class="face" id="face">
+					<img id="face-bluetooth" class="icon bluetooth" alt="Bluetooth" hidden>
+					<img id="face-battery" class="icon battery" alt="Battery" hidden>
+					<p id="face-time" class="time">10:43</p>
+					<p id="face-seconds" class="seconds"></p>
+					<p id="face-day" class="day">Saturday</p>
+					<p id="face-date" class="date">15th Mar. 2014</p>
+				</div>
+			</div>
+			<p class="preview-sample">Sample face. Phone connected, battery 80%.</p>
+			<p id="face-caption" class="preview-caption" aria-live="polite"></p>
+		</section>
 		<form id="config" autocomplete="off">
 			<fieldset>
 				<legend>Face</legend>
@@ -204,6 +321,47 @@
 	</main>
 	<script id="config-logic">
 		var LANGUAGE_COUNT = 8;
+		var PREVIEW_SAMPLE = {
+			hourText: "10:43",
+			secondsText: "42",
+			wday: 6,
+			month: 2,
+			day: 15,
+			year: 2014,
+			chargePercent: 80,
+			charging: false,
+			connected: true
+		};
+		var WEEKDAY_NAMES = [
+			["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+			["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"],
+			["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"],
+			["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"],
+			["Domenica", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato"],
+			["Söndag", "Måndag", "Tisdag", "Onsdag", "Torsdag", "Fredag", "Lördag"],
+			["Søndag", "Mandag", "Tisdag", "Onsdag", "Torsdag", "Fredag", "Lørdag"],
+			["Zondag", "Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag", "Zaterdag"]
+		];
+		var MONTH_NAMES = [
+			["Jan.", "Feb.", "Mar.", "Apr.", "May", "June", "July", "Aug.", "Sept.", "Oct.", "Nov.", "Dec."],
+			["Jän.", "Feb.", "März", "Apr.", "Mai", "Juni", "Juli", "Aug.", "Sept.", "Okt.", "Nov.", "Dez."],
+			["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago.", "Sep", "Oct", "Nov", "Dic"],
+			["Janv.", "Févr.", "Mars", "Avril", "Mai", "Juin", "Juil.", "Août", "Sept.", "Oct.", "Nov.", "Déc."],
+			["Genn.", "Febbr.", "Mar.", "Apr.", "Magg.", "Giugno", "Luglio", "Ag.", "Sett.", "Ott.", "Nov.", "Dic."],
+			["Jan.", "Febr.", "Mars", "April", "Maj", "Juni", "Juli", "Aug.", "Sept.", "Okt.", "Nov.", "Dec."],
+			["Jan.", "Febr.", "Marts", "April", "Maj", "Juni", "Juli", "Aug.", "Sept.", "Okt.", "Nov.", "Dec."],
+			["Jan.", "Feb.", "Maart", "Apr.", "Mei", "Juni", "Juli", "Aug.", "Sept.", "Okt.", "Nov.", "Dec."]
+		];
+		var ORDINALS = [
+			["th", "st", "nd", "rd", "th", "th", "th", "th", "th", "th"],
+			[".", ".", ".", ".", ".", ".", ".", ".", ".", "."],
+			["º", "º", "º", "º", "º", "º", "º", "º", "º", "º"],
+			["er", "", "", "", "", "", "", "", "", ""],
+			["º", "º", "º", "º", "º", "º", "º", "º", "º", "º"],
+			["", "", "", "", "", "", "", "", "", ""],
+			[".", ".", ".", ".", ".", ".", ".", ".", ".", "."],
+			[".", ".", ".", ".", ".", ".", ".", ".", ".", "."]
+		];
 		var VIBE_CHOICES = [
 			{ value: 0, label: "Off" },
 			{ value: 5, label: "Every 5 minutes" },
@@ -350,6 +508,7 @@
 				}),
 				settings.vibeminutes
 			);
+			renderPreview(settings);
 		}
 
 		function currentSettings() {
@@ -368,6 +527,129 @@
 			location.href = "pebblejs://close#" + encodeURIComponent(JSON.stringify(settings));
 		}
 
+		function weekdayName(language, wday) {
+			if (language < 0 || language >= LANGUAGE_COUNT || wday < 0 || wday > 6) {
+				return "";
+			}
+			return WEEKDAY_NAMES[language][wday];
+		}
+
+		function ordinalSuffix(language, day) {
+			if (language < 0 || language >= LANGUAGE_COUNT || day < 0) {
+				return "";
+			}
+			if (language === 0 && day >= 11 && day <= 13) {
+				return "th";
+			}
+			if (language === 3 && day === 1) {
+				return ORDINALS[language][day];
+			}
+			return ORDINALS[language][day % 10];
+		}
+
+		function formatPreviewDate(language, dateMode, day, month, year) {
+			var monthName = MONTH_NAMES[language][month];
+			var ordinal = ordinalSuffix(language, day);
+			if (dateMode === 1) {
+				return monthName + ", " + day + ordinal + " " + year;
+			}
+			if (dateMode === 0) {
+				return day + ordinal + " " + monthName + " " + year;
+			}
+			return "";
+		}
+
+		function batteryVisible(mode, percent, charging) {
+			return mode === 2 || (mode === 1 && percent <= 20) || charging;
+		}
+
+		function bluetoothHidden(mode, connected) {
+			return mode === 0 || (mode === 1 && connected);
+		}
+
+		function batteryFile(percent, charging) {
+			var step = Math.floor(percent / 10);
+			if (step < 0) {
+				step = 0;
+			}
+			if (step > 10) {
+				step = 10;
+			}
+			return (charging ? "charging_" : "battery_") + (step * 10) + ".png";
+		}
+
+		function previewCaption(settings) {
+			var parts = [];
+			if (settings.battery === 0) {
+				parts.push("Battery shows only while charging.");
+			} else if (settings.battery === 1) {
+				parts.push("Battery shows at 20% or below, and while charging.");
+			}
+			if (settings.bluetooth === 1) {
+				parts.push("Bluetooth shows when the phone disconnects.");
+			}
+			if (settings.connlost === 1) {
+				parts.push("A disconnect blinks the icon and buzzes three times.");
+			}
+			if (settings.vibeminutes === 0) {
+				parts.push("Vibrate is off.");
+			} else if (settings.vibeminutes === 60) {
+				parts.push("Double pulse each hour.");
+			} else {
+				parts.push("Double pulse every " + settings.vibeminutes + " minutes.");
+			}
+			return parts.join(" ");
+		}
+
+		function previewFace(settings) {
+			var sample = PREVIEW_SAMPLE;
+			var showBattery = batteryVisible(settings.battery, sample.chargePercent, sample.charging);
+			return {
+				time: sample.hourText,
+				seconds: settings.showseonds === 1 ? sample.secondsText : "",
+				day: weekdayName(settings.language, sample.wday),
+				date: formatPreviewDate(settings.language, settings.datestyle, sample.day, sample.month, sample.year),
+				batteryVisible: showBattery,
+				batterySrc: "../resources/images/" + batteryFile(sample.chargePercent, sample.charging),
+				bluetoothVisible: !bluetoothHidden(settings.bluetooth, sample.connected),
+				bluetoothSrc: "../resources/images/" + (sample.connected ? "bluetooth_on.png" : "bluetooth_off.png"),
+				caption: previewCaption(settings)
+			};
+		}
+
+		function setText(id, text) {
+			var node = document.getElementById(id);
+			if (node) {
+				node.textContent = text;
+			}
+		}
+
+		function setIcon(id, visible, src) {
+			var node = document.getElementById(id);
+			if (!node) {
+				return;
+			}
+			node.hidden = !visible;
+			if (src) {
+				node.src = src;
+			}
+		}
+
+		function renderPreview(settings) {
+			var face;
+			if (typeof document === "undefined" || !document.getElementById) {
+				return;
+			}
+			face = previewFace(settings);
+			setText("face-time", face.time);
+			setText("face-seconds", face.seconds);
+			setText("face-day", face.day);
+			setText("face-date", face.date);
+			setText("face-caption", face.caption);
+			setIcon("face-battery", face.batteryVisible, face.batterySrc);
+			setIcon("face-bluetooth", face.bluetoothVisible, face.bluetoothSrc);
+		}
+
 		function boot() {
 			if (typeof document === "undefined" || !document.getElementById) {
 				return;
@@ -382,6 +664,9 @@
 			};
 			document.getElementById("cancel").onclick = function() {
 				location.href = "pebblejs://close";
+			};
+			document.getElementById("config").onchange = function() {
+				renderPreview(currentSettings());
 			};
 		}
 

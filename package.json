@@ -13,7 +13,13 @@
     "sdkVersion": "3",
     "enableMultiJS": false,
     "targetPlatforms": [
-      "basalt"
+      "aplite",
+      "basalt",
+      "chalk",
+      "diorite",
+      "emery",
+      "flint",
+      "gabbro"
     ],
     "capabilities": [
       "configurable"
@@ -28,6 +34,7 @@
       "connlost": 7,
       "datestyle": 5,
       "language": 4,
+      "layout": 10,
       "showseonds": 8,
       "vibeminutes": 3
     },

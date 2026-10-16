@@ -50,6 +50,107 @@ int face_supported_language(int language) {
 	return language;
 }
 
+int face_supported_layout(int layout, bool is_round) {
+	if (is_round && (layout == LAYOUT_D || layout < 0 || layout >= LAYOUT_COUNT)) {
+		return LAYOUT_B;
+	}
+	if (layout < 0 || layout >= LAYOUT_COUNT) {
+		return LAYOUT_D;
+	}
+	return layout;
+}
+
+/* First row where a centered span stays inside a circle of this diameter. */
+static int circle_fit_y(int diameter, int span) {
+	int radius = diameter / 2;
+	int half = span / 2 + 2;
+	int y;
+
+	for (y = 0; y < radius; y++) {
+		int dy = radius - y;
+
+		if (dy * dy + half * half <= radius * radius) {
+			return y;
+		}
+	}
+	return 0;
+}
+
+static void fill_slot(FaceSlot *slot, int x, int y, int w, int h, int align, bool visible) {
+	slot->x = x;
+	slot->y = y;
+	slot->w = w;
+	slot->h = h;
+	slot->align = align;
+	slot->visible = visible;
+}
+
+static void fill_round_frames(const FaceScreen *screen, int layout, FaceFrames *out) {
+	int diameter = screen->width < screen->height ? screen->width : screen->height;
+	/* Widest pill is bluetooth + battery + vibe, including its padding. */
+	int reserved = circle_fit_y(diameter, 129) + 25;
+	int time_y = (diameter - 50) / 2;
+	int shift = 0;
+	bool stacked = layout == LAYOUT_B;
+
+	if (stacked) {
+		int block = (91 + 24) - 32;
+		int top = (diameter - block) / 2;
+
+		if (top < reserved) {
+			top = reserved;
+		}
+		shift = top - 32;
+		time_y = 51 + shift;
+	} else if (time_y < reserved) {
+		time_y = reserved;
+	}
+
+	fill_slot(&out->time, 0, time_y, screen->width, 50, FACE_ALIGN_CENTER, true);
+	fill_slot(&out->seconds, 0, 0, screen->width, 20, FACE_ALIGN_CENTER, false);
+	fill_slot(&out->day, 0, 32 + shift, screen->width, 22, FACE_ALIGN_CENTER, stacked);
+	fill_slot(&out->date, 0, 91 + shift, screen->width, 24, FACE_ALIGN_CENTER, stacked);
+}
+
+void face_layout_frames(const FaceScreen *screen, int layout, bool seconds_on,
+		FaceFrames *out) {
+	int width = screen->width;
+	int oy = 0;
+
+	layout = face_supported_layout(layout, screen->is_round);
+	if (screen->is_round) {
+		fill_round_frames(screen, layout, out);
+		return;
+	}
+
+	if (width < 144) {
+		width = 144;
+	}
+	if (screen->height > 168) {
+		oy = (screen->height - 168) / 2;
+	}
+
+	/* Orbitron and Orbitron D share the centered time row. The glyph tops in
+	   the store screenshots sit about 12 pixels into this 50-pixel layer. */
+	fill_slot(&out->time, 0, 47 + oy, width, 50, FACE_ALIGN_CENTER, true);
+	fill_slot(&out->seconds, 0, 88 + oy, width - 8, 20, FACE_ALIGN_RIGHT, false);
+	fill_slot(&out->day, 0, 128 + oy, width - 2, 20, FACE_ALIGN_RIGHT, true);
+	fill_slot(&out->date, 0, 146 + oy, width - 2, 18, FACE_ALIGN_RIGHT, true);
+
+	if (layout == LAYOUT_B) {
+		/* Weekday, time, then date, each centered. Measured from the
+		   Orbitron B screenshots: weekday ink at y=42, time at y=63, date at y=98. */
+		fill_slot(&out->day, 0, 32 + oy, width, 22, FACE_ALIGN_CENTER, true);
+		fill_slot(&out->time, 0, 51 + oy, width, 50, FACE_ALIGN_CENTER, true);
+		fill_slot(&out->date, 0, 91 + oy, width, 24, FACE_ALIGN_CENTER, true);
+	} else if (layout == LAYOUT_ORBITRON) {
+		out->day.visible = false;
+		out->date.visible = false;
+	} else if (seconds_on) {
+		out->seconds.visible = true;
+	}
+}
+
 const char *face_weekday(int language, int wday) {
 	if (language < 0 || language >= NUM_LANG || wday < 0 || wday > 6) {
 		return "";
@@ -161,6 +262,74 @@ bool face_line_needs_update(const char *current, const char *next) {
 		return true;
 	}
 	return false;
+}
+
+static void blank_icon(FaceIcon *icon, int w, int h) {
+	icon->x = 0;
+	icon->y = 0;
+	icon->w = w;
+	icon->h = h;
+	icon->visible = false;
+}
+
+void face_status_island(const FaceScreen *screen, bool show_bluetooth,
+		bool show_battery, bool show_vibe, FaceIsland *out) {
+	FaceIcon *slots[3];
+	int count = 0;
+	int content = 0;
+	int cursor;
+	int i;
+	const int pad_x = 4;
+	const int gap = 3;
+	/* Odd height so a radius of (height - 1) / 2 fills the capsule exactly. */
+	const int height = 25;
+
+	blank_icon(&out->bluetooth, 45, 16);
+	blank_icon(&out->battery, 50, 16);
+	blank_icon(&out->vibe, 20, 20);
+	out->x = 0;
+	out->y = 1;
+	out->w = 0;
+	out->h = height;
+	out->visible = false;
+
+	if (show_bluetooth) {
+		slots[count++] = &out->bluetooth;
+	}
+	if (show_battery) {
+		slots[count++] = &out->battery;
+	}
+	if (show_vibe) {
+		slots[count++] = &out->vibe;
+	}
+	if (count == 0) {
+		return;
+	}
+
+	for (i = 0; i < count; i++) {
+		content += slots[i]->w;
+		if (i > 0) {
+			content += gap;
+		}
+	}
+	out->visible = true;
+	out->w = content + pad_x * 2;
+	out->x = (screen->width - out->w) / 2;
+	if (screen->is_round) {
+		int diameter = screen->width < screen->height ? screen->width : screen->height;
+
+		out->y = circle_fit_y(diameter, out->w);
+		out->x = (screen->width - out->w) / 2;
+	} else if (screen->height > 168) {
+		out->y = 1 + (screen->height - 168) / 2;
+	}
+	cursor = pad_x;
+	for (i = 0; i < count; i++) {
+		slots[i]->visible = true;
+		slots[i]->x = cursor;
+		slots[i]->y = (height - slots[i]->h) / 2;
+		cursor += slots[i]->w + gap;
+	}
 }
 
 void face_connlost_frame(int count, bool *icon_on, bool *buzz, bool *keep_going) {

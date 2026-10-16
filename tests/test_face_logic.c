@@ -47,6 +47,88 @@ static void test_config_keys(void) {
 	expect_int("connection loss matches appinfo", CONN_KEY, 7);
 	expect_int("seconds matches appinfo showseonds", SHOW_SECS, 8);
 	expect_int("animate is the next key", ANIMATE_KEY, 9);
+	expect_int("layout matches appinfo", LAYOUT_KEY, 10);
+}
+
+static void expect_slot(const char *name, const FaceSlot *slot,
+		int x, int y, int w, int h, int align, int visible) {
+	expect_int(name, slot->x, x);
+	expect_int(name, slot->y, y);
+	expect_int(name, slot->w, w);
+	expect_int(name, slot->h, h);
+	expect_int(name, slot->align, align);
+	expect_int(name, slot->visible, visible);
+}
+
+static FaceScreen screen_of(int width, int height, bool is_round) {
+	FaceScreen screen;
+
+	screen.width = width;
+	screen.height = height;
+	screen.is_round = is_round;
+	return screen;
+}
+
+static void test_layouts(void) {
+	FaceFrames frames;
+	FaceScreen rect = screen_of(144, 168, false);
+	FaceScreen emery = screen_of(200, 228, false);
+	FaceScreen chalk = screen_of(180, 180, true);
+	FaceScreen gabbro = screen_of(260, 260, true);
+
+	expect_int("unknown layout falls back", face_supported_layout(9, false), LAYOUT_D);
+	expect_int("orbitron b stays", face_supported_layout(LAYOUT_B, false), LAYOUT_B);
+	expect_int("round keeps orbitron b", face_supported_layout(LAYOUT_B, true), LAYOUT_B);
+	expect_int("round keeps the time-only layout",
+			face_supported_layout(LAYOUT_ORBITRON, true), LAYOUT_ORBITRON);
+	expect_int("round disables orbitron d", face_supported_layout(LAYOUT_D, true), LAYOUT_B);
+	expect_int("round unknown layout uses b", face_supported_layout(9, true), LAYOUT_B);
+
+	face_layout_frames(&rect, LAYOUT_D, false, &frames);
+	expect_slot("d time", &frames.time, 0, 47, 144, 50, FACE_ALIGN_CENTER, 1);
+	expect_slot("d seconds hidden", &frames.seconds, 0, 88, 136, 20, FACE_ALIGN_RIGHT, 0);
+	expect_slot("d day", &frames.day, 0, 128, 142, 20, FACE_ALIGN_RIGHT, 1);
+	expect_slot("d date", &frames.date, 0, 146, 142, 18, FACE_ALIGN_RIGHT, 1);
+
+	face_layout_frames(&rect, LAYOUT_D, true, &frames);
+	expect_int("d seconds shown", frames.seconds.visible, 1);
+
+	face_layout_frames(&rect, LAYOUT_B, true, &frames);
+	expect_slot("b day", &frames.day, 0, 32, 144, 22, FACE_ALIGN_CENTER, 1);
+	expect_slot("b time", &frames.time, 0, 51, 144, 50, FACE_ALIGN_CENTER, 1);
+	expect_slot("b date", &frames.date, 0, 91, 144, 24, FACE_ALIGN_CENTER, 1);
+	expect_int("b ignores seconds", frames.seconds.visible, 0);
+
+	face_layout_frames(&rect, LAYOUT_ORBITRON, true, &frames);
+	expect_slot("orbitron time", &frames.time, 0, 47, 144, 50, FACE_ALIGN_CENTER, 1);
+	expect_int("orbitron hides the day", frames.day.visible, 0);
+	expect_int("orbitron hides the date", frames.date.visible, 0);
+	expect_int("orbitron ignores seconds", frames.seconds.visible, 0);
+
+	face_layout_frames(&rect, 99, false, &frames);
+	expect_int("unknown layout uses d day", frames.day.y, 128);
+	expect_int("unknown layout keeps the day", frames.day.visible, 1);
+
+	face_layout_frames(&emery, LAYOUT_D, true, &frames);
+	expect_slot("emery time", &frames.time, 0, 77, 200, 50, FACE_ALIGN_CENTER, 1);
+	expect_slot("emery seconds", &frames.seconds, 0, 118, 192, 20, FACE_ALIGN_RIGHT, 1);
+	expect_slot("emery day", &frames.day, 0, 158, 198, 20, FACE_ALIGN_RIGHT, 1);
+	expect_slot("emery date", &frames.date, 0, 176, 198, 18, FACE_ALIGN_RIGHT, 1);
+
+	face_layout_frames(&chalk, LAYOUT_D, true, &frames);
+	expect_slot("chalk uses the b day", &frames.day, 0, 54, 180, 22, FACE_ALIGN_CENTER, 1);
+	expect_slot("chalk uses the b time", &frames.time, 0, 73, 180, 50, FACE_ALIGN_CENTER, 1);
+	expect_slot("chalk uses the b date", &frames.date, 0, 113, 180, 24, FACE_ALIGN_CENTER, 1);
+	expect_int("chalk hides seconds", frames.seconds.visible, 0);
+
+	face_layout_frames(&chalk, LAYOUT_ORBITRON, true, &frames);
+	expect_slot("chalk time only", &frames.time, 0, 65, 180, 50, FACE_ALIGN_CENTER, 1);
+	expect_int("chalk time only hides the day", frames.day.visible, 0);
+
+	face_layout_frames(&gabbro, LAYOUT_B, false, &frames);
+	expect_slot("gabbro day", &frames.day, 0, 88, 260, 22, FACE_ALIGN_CENTER, 1);
+	expect_slot("gabbro time", &frames.time, 0, 107, 260, 50, FACE_ALIGN_CENTER, 1);
+	expect_slot("gabbro date", &frames.date, 0, 147, 260, 24, FACE_ALIGN_CENTER, 1);
 }
 
 static void test_names(void) {
@@ -244,6 +326,68 @@ static void test_line_update(void) {
 	expect_int("12h to 24h width updates", face_line_needs_update("9:00", "09:00"), 1);
 }
 
+static void expect_icon(const char *name, const FaceIcon *icon,
+		int x, int y, int w, int h, int visible) {
+	expect_int(name, icon->x, x);
+	expect_int(name, icon->y, y);
+	expect_int(name, icon->w, w);
+	expect_int(name, icon->h, h);
+	expect_int(name, icon->visible, visible);
+}
+
+static void test_status_island(void) {
+	FaceIsland island;
+	FaceScreen rect = screen_of(144, 168, false);
+	FaceScreen emery = screen_of(200, 228, false);
+	FaceScreen chalk = screen_of(180, 180, true);
+
+	face_status_island(&rect, false, false, false, &island);
+	expect_int("empty island hidden", island.visible, 0);
+	expect_int("empty island width", island.w, 0);
+	expect_int("island hangs from the top", island.y, 1);
+	expect_int("island height", island.h, 25);
+	expect_int("hidden bluetooth keeps its size", island.bluetooth.w, 45);
+	expect_int("hidden bluetooth stays off", island.bluetooth.visible, 0);
+
+	face_status_island(&rect, false, true, false, &island);
+	expect_int("battery pill shown", island.visible, 1);
+	expect_int("battery pill width", island.w, 58);
+	expect_int("battery pill centered", island.x, 43);
+	expect_icon("battery in its pill", &island.battery, 4, 4, 50, 16, 1);
+	expect_int("bluetooth stays out of the battery pill", island.bluetooth.visible, 0);
+	expect_int("vibe stays out of the battery pill", island.vibe.visible, 0);
+
+	face_status_island(&rect, true, false, false, &island);
+	expect_int("bluetooth pill width", island.w, 53);
+	expect_int("bluetooth pill centered", island.x, 45);
+	expect_icon("bluetooth alone", &island.bluetooth, 4, 4, 45, 16, 1);
+
+	face_status_island(&rect, false, false, true, &island);
+	expect_int("vibe pill width", island.w, 28);
+	expect_int("vibe pill centered", island.x, 58);
+	expect_icon("vibe alone", &island.vibe, 4, 2, 20, 20, 1);
+
+	face_status_island(&rect, true, true, true, &island);
+	expect_int("full pill width", island.w, 129);
+	expect_int("full pill centered", island.x, 7);
+	expect_icon("bluetooth leads the pill", &island.bluetooth, 4, 4, 45, 16, 1);
+	expect_icon("battery follows bluetooth", &island.battery, 52, 4, 50, 16, 1);
+	expect_icon("vibe closes the pill", &island.vibe, 105, 2, 20, 20, 1);
+
+	face_status_island(&emery, false, true, false, &island);
+	expect_int("emery battery pill x", island.x, 71);
+	expect_int("emery battery pill y", island.y, 31);
+
+	face_status_island(&chalk, true, true, true, &island);
+	expect_int("chalk full pill x", island.x, 25);
+	expect_int("chalk full pill y", island.y, 29);
+	expect_int("chalk full pill width", island.w, 129);
+
+	face_status_island(&chalk, false, true, false, &island);
+	expect_int("chalk battery pill y", island.y, 6);
+	expect_int("chalk battery pill x", island.x, 61);
+}
+
 static void test_connection_loss(void) {
 	int count;
 	int buzzes = 0;
@@ -269,6 +413,7 @@ static void test_connection_loss(void) {
 
 int main(void) {
 	test_config_keys();
+	test_layouts();
 	test_names();
 	test_ordinals();
 	test_dates();
@@ -277,6 +422,7 @@ int main(void) {
 	test_bluetooth();
 	test_vibe();
 	test_line_update();
+	test_status_island();
 	test_connection_loss();
 
 	if (failures != 0) {

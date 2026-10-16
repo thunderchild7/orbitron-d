@@ -86,6 +86,63 @@ assert.ok(html.indexOf("pebblejs://close#") !== -1);
 assert.ok(html.indexOf("Воскресенье") === -1);
 assert.ok(html.indexOf("Nederlands") !== -1);
 assert.ok(html.indexOf("Dansk") !== -1);
+assert.ok(html.indexOf('id="face"') !== -1);
+assert.ok(html.indexOf('id="face-caption"') !== -1);
+
+var face = sandbox.previewFace(sandbox.readSettings({}));
+assert.strictEqual(face.time, "10:43");
+assert.strictEqual(face.seconds, "");
+assert.strictEqual(face.day, "Saturday");
+assert.strictEqual(face.date, "15th Mar. 2014");
+assert.strictEqual(face.batteryVisible, false);
+assert.strictEqual(face.bluetoothVisible, false);
+assert.strictEqual(face.batterySrc, "../resources/images/battery_80.png");
+assert.strictEqual(face.caption, "Battery shows only while charging. Vibrate is off.");
+
+face = sandbox.previewFace(sandbox.readSettings({
+	showseonds: "1",
+	datestyle: "1",
+	language: "1",
+	battery: "2",
+	bluetooth: "2",
+	vibeminutes: "15",
+	connlost: "1"
+}));
+assert.strictEqual(face.seconds, "42");
+assert.strictEqual(face.day, "Samstag");
+assert.strictEqual(face.date, "März, 15. 2014");
+assert.strictEqual(face.batteryVisible, true);
+assert.strictEqual(face.bluetoothVisible, true);
+assert.strictEqual(face.bluetoothSrc, "../resources/images/bluetooth_on.png");
+assert.ok(face.caption.indexOf("Double pulse every 15 minutes.") !== -1);
+assert.ok(face.caption.indexOf("blinks the icon") !== -1);
+assert.ok(face.caption.indexOf("Battery shows") === -1);
+
+face = sandbox.previewFace(sandbox.readSettings({
+	language: "3",
+	datestyle: "0",
+	battery: "1",
+	bluetooth: "1",
+	vibeminutes: "60"
+}));
+assert.strictEqual(face.day, "Samedi");
+assert.strictEqual(face.date, "15 Mars 2014");
+assert.strictEqual(face.batteryVisible, false);
+assert.strictEqual(face.bluetoothVisible, false);
+assert.strictEqual(
+	face.caption,
+	"Battery shows at 20% or below, and while charging. Bluetooth shows when the phone disconnects. Double pulse each hour."
+);
+
+assert.strictEqual(
+	sandbox.formatPreviewDate(3, 0, 1, 0, 2014),
+	"1 Janv. 2014"
+);
+assert.strictEqual(
+	sandbox.formatPreviewDate(4, 1, 2, 1, 2014),
+	"Febbr., 2º 2014"
+);
+assert.strictEqual(sandbox.weekdayName(6, 6), "Lørdag");
 
 assert.ok(phone.indexOf("https://thunderchild7.github.io/orbitron-d/config/index.html?v=1.5") !== -1);
 assert.ok(phone.indexOf("ewobo.co.uk") === -1);
